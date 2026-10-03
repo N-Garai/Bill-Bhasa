@@ -339,19 +339,28 @@ async def speak(payload: SpeakIn):
 
 
 # --- frontend (single service serves the PWA) ------------------------------
+# Shell files carry no-store: the service worker owns offline caching, and
+# a heuristically-cached old index.html + new app.js (or vice versa) is
+# exactly how users get stuck on stale, half-updated UI.
+_NO_STORE = {"Cache-Control": "no-store"}
+
 if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR)), name="assets")
 
     @app.get("/", response_class=HTMLResponse)
     def index():
-        return (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
+        return HTMLResponse(
+            (FRONTEND_DIR / "index.html").read_text(encoding="utf-8"),
+            headers=_NO_STORE)
 
     @app.get("/manifest.webmanifest")
     def manifest():
         p = FRONTEND_DIR / "manifest.webmanifest"
-        return Response(content=p.read_bytes(), media_type="application/manifest+json")
+        return Response(content=p.read_bytes(),
+                        media_type="application/manifest+json", headers=_NO_STORE)
 
     @app.get("/sw.js")
     def sw():
         p = FRONTEND_DIR / "sw.js"
-        return Response(content=p.read_bytes(), media_type="application/javascript")
+        return Response(content=p.read_bytes(),
+                        media_type="application/javascript", headers=_NO_STORE)

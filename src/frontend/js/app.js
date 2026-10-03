@@ -374,9 +374,12 @@ function showProc(show) {
 function showLocalError(msg) {
   $("err-title").textContent = t().errTitle;
   $("err-tech").textContent = t().errTechHead + ": " + msg;
-  $("errbox").classList.remove("hidden");
+  const box = $("errbox");
+  if (box) {
+    box.classList.remove("hidden");
+    box.scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
+  }
   toast(msg);
-  $("errbox").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
 }
 
 function showError(st) {
@@ -385,9 +388,12 @@ function showError(st) {
   $("err-title").textContent = t().errTitle;
   $("err-tech").textContent = t().errTechHead + ": " + tech + where +
     (serverBuild ? " • srv=" + serverBuild : "");
-  $("errbox").classList.remove("hidden");
+  const box = $("errbox");
+  if (box) {
+    box.classList.remove("hidden");
+    box.scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
+  }
   toast(t().errRead);
-  $("errbox").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
 }
 
 async function poll(id) {

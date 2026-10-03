@@ -26,6 +26,14 @@ def test_health():
         assert r.json()["ok"] is True
 
 
+def test_shell_files_are_not_browser_cached():
+    with _client() as c:
+        for path in ("/", "/sw.js", "/manifest.webmanifest"):
+            r = c.get(path)
+            assert r.status_code == 200, path
+            assert "no-store" in r.headers.get("cache-control", ""), path
+
+
 def test_text_scan_flow():
     with _client() as c:
         r = c.post("/api/scan-text", json={"text": "BIJLI BILL\nTotal Rs. 420\nDue 10-09-2026"})
