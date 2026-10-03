@@ -72,6 +72,8 @@ const STRINGS = {
     needPinFirst: "Is jagah par PIN laga hai — upar PIN daal kar “Dekhiye” dabaiye 🔑",
     otherLang: "Ye jawab scan wali bhasha mein hai — bhasha badal kar dobara bhejein 🌐",
     copy: "📋 Copy", copied: "✓ Code copy ho gaya — sambhal kar rakhiye",
+    errTitle: "Maaf kijiye — photo padha nahi ja saka 😔",
+    errTechHead: "Takneeki wajah",
     footDesc: "Photo kheenchiye, suniye, samjhiye — bill, parcha aur raseed, seedhe-saral shabdon mein.",
     footExplore: "Dekhiye", footTrust: "Bharosa",
     trust1: "🔒 Har visitor ki apni niji jagah",
@@ -129,6 +131,8 @@ const STRINGS = {
     needPinFirst: "Ei jagay PIN lagano — upore PIN diye “Dekhun” chapun 🔑",
     otherLang: "Ei uttor scan-er bhashay ache — bhasha bodle abar pathan 🌐",
     copy: "📋 Copy", copied: "✓ Code copy hoye geche — jotno kore rakhun",
+    errTitle: "Dukkhito — chobi pora jayni 😔",
+    errTechHead: "Karigori karon",
     footDesc: "Chobi tulun, shunun, bujhun — bill, prescription ar roshid, sohoj-sorol kothay.",
     footExplore: "Dekhun", footTrust: "Bishwash",
     trust1: "🔒 Prottek dorshoker nijer jayga",
@@ -186,6 +190,8 @@ const STRINGS = {
     needPinFirst: "This space has a PIN — enter it above and press “View” 🔑",
     otherLang: "This answer is in the scan's language — switch language and resend 🌐",
     copy: "📋 Copy", copied: "✓ Code copied — keep it safe",
+    errTitle: "Sorry — couldn't read the photo 😔",
+    errTechHead: "Technical reason",
     footDesc: "Snap, listen, understand — bills, prescriptions and receipts in simple words.",
     footExplore: "Explore", footTrust: "Trust",
     trust1: "🔒 Every visitor gets a private space",
@@ -356,7 +362,28 @@ function setSteps(stage) {
 
 function showProc(show) {
   $("proc").classList.toggle("hidden", !show);
-  if (show) { $("result").classList.add("hidden"); setSteps("received"); }
+  if (show) {
+    $("result").classList.add("hidden");
+    $("errbox").classList.add("hidden");
+    setSteps("received");
+  }
+}
+
+function showLocalError(msg) {
+  $("err-title").textContent = t().errTitle;
+  $("err-tech").textContent = t().errTechHead + ": " + msg;
+  $("errbox").classList.remove("hidden");
+  toast(msg);
+  $("errbox").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
+}
+
+function showError(st) {
+  const tech = (st.timings && st.timings.error) || st.stage;
+  $("err-title").textContent = t().errTitle;
+  $("err-tech").textContent = t().errTechHead + ": " + tech;
+  $("errbox").classList.remove("hidden");
+  toast(t().errRead);
+  $("errbox").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
 }
 
 async function poll(id) {
@@ -372,7 +399,7 @@ async function poll(id) {
       if (st.stage === "error") {
         clearInterval(pollTimer);
         showProc(false);
-        toast(t().errRead);
+        showError(st);
       }
     } catch { /* retry next tick */ }
   }, 1500);
@@ -391,7 +418,7 @@ async function startScan(file) {
     poll(id);
   } catch (e) {
     showProc(false);
-    toast(e.message);
+    showLocalError(e.message);
   }
 }
 
@@ -404,7 +431,7 @@ async function startText(text) {
     poll(id);
   } catch (e) {
     showProc(false);
-    toast(e.message);
+    showLocalError(e.message);
   }
 }
 
@@ -412,6 +439,7 @@ async function showResult(id) {
   try {
     const r = await api.result(id);
     showProc(false);
+    $("errbox").classList.add("hidden");
     // The answer keeps the language chosen at scan time; say so if the
     // user switched languages mid-scan (avoids "wrong language" confusion).
     if ((r.language || "hi").slice(0, 2) !== LANG) toast(t().otherLang);
@@ -586,8 +614,9 @@ function initInputs() {
   const cam = $("file-input"), pick = $("file-pick");
   $("btn-camera").onclick = () => cam.click();
   $("btn-pick").onclick = () => pick.click();
-  cam.onchange = () => startScan(cam.files[0]);
-  pick.onchange = () => startScan(pick.files[0]);
+  // Reset the inputs so picking the SAME file twice still fires change.
+  cam.onchange = () => { const f = cam.files[0]; cam.value = ""; startScan(f); };
+  pick.onchange = () => { const f = pick.files[0]; pick.value = ""; startScan(f); };
   $("text-form").onsubmit = (e) => {
     e.preventDefault();
     const v = $("text-input").value.trim();
@@ -604,6 +633,12 @@ function initInputs() {
   };
   $("btn-again").onclick = () => {
     stopBrowser();
+    $("result").classList.add("hidden");
+    window.scrollTo({ top: 0, behavior: calm() ? "auto" : "smooth" });
+  };
+  $("btn-retry").onclick = () => {
+    stopBrowser();
+    $("errbox").classList.add("hidden");
     $("result").classList.add("hidden");
     window.scrollTo({ top: 0, behavior: calm() ? "auto" : "smooth" });
   };

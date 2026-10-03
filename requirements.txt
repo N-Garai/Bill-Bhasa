@@ -10,6 +10,8 @@ sqlalchemy==2.0.38
 psycopg2-binary==2.9.10
 # Optional OCR wrapper (pure Python; needs the tesseract system binary).
 pytesseract==0.3.13
-# Tiny test runner
+# Optional HEIC opener for iPhone photos (fail-soft if uninstallable).
+pillow-heif==0.21.0
+# Test runner.
 pytest==8.3.4
 httpx==0.28.1

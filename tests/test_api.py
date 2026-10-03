@@ -60,6 +60,26 @@ def _wait_done(c, doc_id, code=None):
     raise AssertionError("scan never finished")
 
 
+def test_image_upload_path_with_filename():
+    import io
+
+    from PIL import Image
+
+    img = Image.new("RGB", (900, 500), "white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    with _client() as c:
+        r = c.post("/api/scan", files={"image": ("photo.png", buf, "image/png")},
+                   data={"lang": "en"})
+        assert r.status_code == 200, r.text
+        doc_id = r.json()["id"]
+        st = _wait_done(c, doc_id)
+        assert st["stage"] == "done", st
+        res = c.get(f"/api/scan/{doc_id}").json()
+        assert res["doc_type"] == "unknown"  # blank image, honest retry
+
+
 def test_family_spaces_are_isolated():
     with _client() as c:
         code_a = c.post("/api/family/ensure", json={}).json()["code"]

@@ -50,6 +50,11 @@ export const api = {
     fd.append("image", file);
     fd.append("lang", lang);
     fd.append("family", famCode());
+    // Shrunk photos arrive as nameless Blobs — FastAPI's File() rejects
+    // parts without a filename (422), so always send one.
+    if (!(fd.get("image") instanceof File)) {
+      fd.set("image", new File([file], "photo.jpg", { type: "image/jpeg" }));
+    }
     const res = await fetch("/api/scan", { method: "POST", body: fd });
     if (!res.ok) throw new Error("Photo bhejne mein dikkat aayi");
     return res.json();

@@ -30,8 +30,13 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
         try:
             _set(doc_id, session_factory, status="cleaning")
             t0 = time.perf_counter()
-            prepared, gray_retry, small_jpg = await asyncio.to_thread(
+            prep = await asyncio.to_thread(
                 load_and_prepare, raw_image, config.MAX_IMAGE_PX)
+            if len(prep) == 3:
+                prepared, gray_retry, small_jpg = prep
+            else:  # tolerate an older image build
+                prepared, small_jpg = prep
+                gray_retry = None
             timings["cleaning"] = round(time.perf_counter() - t0, 2)
             _set(doc_id, session_factory, status="reading")
 
