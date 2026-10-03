@@ -41,11 +41,17 @@ def run_ocr(prepared: Image.Image, retry_gray: Image.Image | None = None,
     if retry_gray is not None and len(first[0].strip()) < 25:
         second = _tess(retry_gray, tess_lang)
         if len(second[0].strip()) > len(first[0].strip()):
-            return second
+            first = second
+    if retry_gray is not None and len(first[0].strip()) < 10:
+        # Last resort: fully automatic segmentation for sparse layouts
+        # (big white areas, scattered tables) where psm 6 finds nothing.
+        third = _tess(retry_gray, tess_lang, psm="4")
+        if len(third[0].strip()) > len(first[0].strip()):
+            first = third
     return first
 
 
-def _tess(img: Image.Image, tess_lang: str) -> tuple[str, float]:
+def _tess(img: Image.Image, tess_lang: str, psm: str = "6") -> tuple[str, float]:
     try:
         # Tesseract time grows superlinearly with pixels; 1000px reads
         # printed bills just as well at a fraction of the weak-CPU cost.
@@ -55,7 +61,7 @@ def _tess(img: Image.Image, tess_lang: str) -> tuple[str, float]:
             img_path.write_bytes(to_png_bytes(img))
             out_base = str(Path(tmp) / "out")
             cmd = [config.TESS_CMD, str(img_path), out_base,
-                   "-l", tess_lang, "--psm", "6", "-c",
+                   "-l", tess_lang, "--psm", psm, "-c",
                    "tessedit_create_tsv=1"]
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
             txt_path = Path(out_base + ".txt")

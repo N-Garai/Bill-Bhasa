@@ -385,17 +385,23 @@ def _iso(date: str | None) -> str | None:
 
 
 def _extract_json(content: str) -> dict | None:
-    try:
-        return json.loads(content)
-    except Exception:
-        pass
-    m = re.search(r"\{.*\}", content, re.DOTALL)
-    if m:
+    """Salvage a JSON object from model chatter: fences, prose, truncation."""
+    text = re.sub(r"```(?:json)?", "", content or "")
+    spans = sorted(
+        (m.group(0) for m in re.finditer(r"\{.*\}", text, re.DOTALL)),
+        key=len, reverse=True)
+    for span in spans:
         try:
-            return json.loads(m.group(0))
+            obj = json.loads(span)
+            if isinstance(obj, dict):
+                return obj
         except Exception:
-            return None
-    return None
+            continue
+    try:
+        obj = json.loads(text)
+        return obj if isinstance(obj, dict) else None
+    except Exception:
+        return None
 
 
 def _guard_numbers(parsed: dict, ocr_text: str) -> dict:

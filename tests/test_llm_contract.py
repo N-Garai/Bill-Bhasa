@@ -57,3 +57,11 @@ def test_english_explains_in_english():
     assert out["amount"] == 540
     assert out["summary_hi"].startswith("Hello")
     assert any("Total amount" in p for p in out["key_points_hi"])
+
+
+def test_extract_json_salvages_fences_and_chatter():
+    blob = ('FIGURES: TOTAL 13715.52\nSure! ```json\n{"doc_type": "receipt", '
+            '"amount": 13715.52}\n```\nHope that helps.')
+    assert llm._extract_json(blob) == {"doc_type": "receipt", "amount": 13715.52}
+    assert llm._extract_json("no json here") is None
+    assert llm._extract_json('{"a": 1} trailing') == {"a": 1}

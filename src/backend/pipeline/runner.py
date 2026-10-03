@@ -66,6 +66,7 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
                 explanation, _provider = await asyncio.to_thread(
                     llm_stage.explain, ocr_text, hint, lang)
                 timings["thinking"] = round(time.perf_counter() - t0, 2)
+            timings["ocr_chars"] = len(ocr_text.strip())
 
             # Anomaly compares against same-type history once type is known.
             past_typed = _past_amounts(doc_id, session_factory, family_code, limit=6,

@@ -57,7 +57,7 @@ def explain_image(jpeg_bytes: bytes, lang: str = "hi") -> tuple[dict, str] | Non
               "Then the JSON object, nothing else."
         )
         payload = json.dumps({
-            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 500},
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 1024},
             "contents": [{
                 "parts": [
                     {"text": instruction},
@@ -90,6 +90,7 @@ def explain_image(jpeg_bytes: bytes, lang: str = "hi") -> tuple[dict, str] | Non
                 break
         parsed = _extract_json(text)
         if not isinstance(parsed, dict):
+            last_error = f"no-json:{model}"
             return None
         guarded = _guard_numbers(parsed, transcript or json.dumps(parsed))
         return guarded, transcript
