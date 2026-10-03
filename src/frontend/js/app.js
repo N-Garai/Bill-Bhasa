@@ -1,6 +1,6 @@
 /* BillBhasha app controller — Saral + Parivar modes, scan flow, voice.
    Bilingual: Hindi (hi) + Bangla (bn). Toggle on the Saral card. */
-import { api } from "./api.js";
+import { api, famCode, setFamCode } from "./api.js";
 import { speakBrowser, stopBrowser } from "./speech.js";
 import {
   attachWave, calm, flagShake, flipIn, introReveals,
@@ -18,7 +18,7 @@ const toast = (msg) => {
 };
 
 let LANG = (localStorage.getItem("bb-lang") || "hi").slice(0, 2);
-if (!["hi", "bn"].includes(LANG)) LANG = "hi";
+if (!["hi", "bn", "en"].includes(LANG)) LANG = "hi";
 
 const STRINGS = {
   hi: {
@@ -51,6 +51,20 @@ const STRINGS = {
     emptyTrend: (n, total) => n ? `Kul ${n} kagaz • is chart mein ₹${Math.round(total).toLocaleString("en-IN")} ka hisaab` : "Abhi koi hisaab nahi — pehla kagaz bhejiye 🌷",
     pinErr: "PIN sahi daal kar dobara dekhiye 🔑",
     locale: "hi-IN",
+    spaceH: "🔐 Apni niji jagah",
+    spaceSub: "Har visitor ki apni alag diary hoti hai.",
+    spaceCode: "Aapka family code:",
+    lblPin: "Apna PIN lagayein (4+ ank)",
+    setPin: "PIN rakhein",
+    lblJoin: "Rishtedaar ka code jodiye",
+    joinBtn: "Jodiye",
+    joinCodePh: "CODE-12AB",
+    pinSaved: "PIN rakh diya 🔐 Ab is PIN ke bina koi nahi dekh payega.",
+    pinNeed: "4 ya zyada ank ka PIN dijiye.",
+    pinWrong: "PIN galat hai 🔑",
+    joined: "Jud gaye! Ab diary shared hai 🤝",
+    joinFail: "Code ya PIN galat — dobara dekhiye.",
+    needPinFirst: "Is jagah par PIN laga hai — upar PIN daal kar “Dekhiye” dabaiye 🔑",
   },
   bn: {
     taglines: [
@@ -82,6 +96,65 @@ const STRINGS = {
     emptyTrend: (n, total) => n ? `Moṭ ${n} kagaj • ei charte ₹${Math.round(total).toLocaleString("en-IN")} hishab` : "Ekhono kono hishab nei — prothom kagaj pathan 🌷",
     pinErr: "PIN thik kore abar dekhun 🔑",
     locale: "bn-IN",
+    spaceH: "🔐 Nijer byaktigoto jayga",
+    spaceSub: "Prottek dorshoker nijossho alada diary thake.",
+    spaceCode: "Apnar family code:",
+    lblPin: "Nijer PIN din (4+ songkha)",
+    setPin: "PIN rakhun",
+    lblJoin: "Attiyer code jog korun",
+    joinBtn: "Jog korun",
+    joinCodePh: "CODE-12AB",
+    pinSaved: "PIN rekhe deoa hoyeche 🔐 Ebar theke ei PIN chara keu dekhte parbe na.",
+    pinNeed: "4 ba tar beshi songkhar PIN din.",
+    pinWrong: "PIN vul hoyeche 🔑",
+    joined: "Jog hoye geche! Ebar shared diary dekhun 🤝",
+    joinFail: "Code ba PIN vul — abar dekhun.",
+    needPinFirst: "Ei jagay PIN lagano — upore PIN diye “Dekhun” chapun 🔑",
+  },
+  en: {
+    taglines: [
+      "Every paper, in your language.",
+      "Snap a photo, listen with ease.",
+      "Bills or prescriptions — all simple.",
+      "Big words, clear voice, warm care.",
+    ],
+    heroL1: "Paper speaks,", heroL2: "your language.",
+    heroSub: "Electricity bill or doctor's prescription — just take a photo and hear it in simple words. Big buttons, clear voice, zero confusion.",
+    ctaStart: "📷 Let's take a photo", ctaHow: "How does it work?",
+    ammaHi: "Hello! 🙏", ammaSub: "To understand any paper, press below",
+    camTxt: "Take Photo", pick: "🖼️ Choose from gallery", orWrite: "or write it here",
+    ph: "Write here… e.g.: electricity bill 540 rupees", send: "✉️ Send",
+    kicker: "Explained for you", play: "▶ Listen", pause: "⏸ Pause",
+    listening: "🔊 Listening…", replay: "▶ Listen again",
+    again: "🔄 New photo", del: "🗑️ Delete this",
+    famH: "Family diary 📒", famSub: "Past papers, spending and important flags — all in one place.",
+    pinPh: "Family PIN (if set)", load: "View", trendH: "Monthly spending",
+    tabHome: "🏠 Simple", tabFam: "📚 Family",
+    stages: { received: "Got it…", cleaning: "Cleaning…", reading: "Reading…", thinking: "Understanding…", speaking: "Speaking…", done: "Done!", error: "Oops!" },
+    notes: { received: "Photo received, just starting…", cleaning: "Wiping off dust and cleaning…", reading: "Reading letter by letter…", thinking: "Understanding in simple words…", speaking: "Preparing the voice…", done: "Ready! Listen below 🌼", error: "Sorry — please try again." },
+    errRead: "Sorry, had trouble reading. Please retake the photo in better light 🙏",
+    ready: "Ready! Press “Listen” to hear it 🌼",
+    deleted: "Deleted — your wish comes first 🤍",
+    writeFirst: "Please write something first ✍️",
+    defaultSummary: "Explained — have a listen 🌼",
+    okLine: "✅ Everything looks fine",
+    emptyTrend: (n, total) => n ? `${n} papers • ₹${Math.round(total).toLocaleString("en-IN")} accounted here` : "No records yet — send your first paper 🌷",
+    pinErr: "Enter the correct PIN and try again 🔑",
+    locale: "en-IN",
+    spaceH: "🔐 Your private space",
+    spaceSub: "Every visitor gets their own separate diary.",
+    spaceCode: "Your family code:",
+    lblPin: "Set your own PIN (4+ digits)",
+    setPin: "Save PIN",
+    lblJoin: "Join a relative's code",
+    joinBtn: "Join",
+    joinCodePh: "CODE-12AB",
+    pinSaved: "PIN saved 🔐 Nobody can view this space without it now.",
+    pinNeed: "Please use a PIN of 4 or more digits.",
+    pinWrong: "Wrong PIN 🔑",
+    joined: "Joined! Now you share one diary 🤝",
+    joinFail: "Wrong code or PIN — check again.",
+    needPinFirst: "This space has a PIN — enter it above and press “View” 🔑",
   },
 };
 const t = () => STRINGS[LANG];
@@ -111,7 +184,7 @@ async function warmup() {
 /* ---------- language ---------- */
 function applyLang() {
   const s = t();
-  document.documentElement.lang = LANG === "bn" ? "bn" : "hi";
+  document.documentElement.lang = LANG;
   $("tagline-rot").textContent = s.taglines[0];
   $("hero-l1").textContent = s.heroL1;
   $("hero-l2").textContent = s.heroL2;
@@ -135,17 +208,27 @@ function applyLang() {
   $("trend-h").textContent = s.trendH;
   $("tab-amma").textContent = s.tabHome;
   $("tab-family").textContent = s.tabFam;
-  const hb = $("lang-hi"), bb = $("lang-bn");
-  hb.classList.toggle("active", LANG === "hi");
-  bb.classList.toggle("active", LANG === "bn");
-  hb.setAttribute("aria-pressed", LANG === "hi");
-  bb.setAttribute("aria-pressed", LANG === "bn");
+  $("space-h").textContent = s.spaceH;
+  $("space-sub").textContent = s.spaceSub;
+  $("space-code-line").childNodes[0].textContent = s.spaceCode + " ";
+  $("lbl-newpin").textContent = s.lblPin;
+  $("btn-setpin").textContent = s.setPin;
+  $("lbl-join").textContent = s.lblJoin;
+  $("btn-join").textContent = s.joinBtn;
+  $("join-code").placeholder = s.joinCodePh;
+  const pills = { hi: $("lang-hi"), bn: $("lang-bn"), en: $("lang-en") };
+  for (const [k, b] of Object.entries(pills)) {
+    b.classList.toggle("active", LANG === k);
+    b.setAttribute("aria-pressed", LANG === k);
+  }
 }
 
 function initLang() {
   applyLang();
-  $("lang-hi").onclick = () => { LANG = "hi"; localStorage.setItem("bb-lang", "hi"); applyLang(); };
-  $("lang-bn").onclick = () => { LANG = "bn"; localStorage.setItem("bb-lang", "bn"); applyLang(); };
+  const set = (l) => { LANG = l; localStorage.setItem("bb-lang", l); applyLang(); };
+  $("lang-hi").onclick = () => set("hi");
+  $("lang-bn").onclick = () => set("bn");
+  $("lang-en").onclick = () => set("en");
 }
 
 /* ---------- mode tabs ---------- */
@@ -293,6 +376,11 @@ const TYPE_NAME = {
     phone_bill: "📱 Phone bill", medical_prescription: "🩺 Daktarer prescription",
     medicine_strip: "💊 Oshudher pata", receipt: "🧾 Roshid", unknown: "📄 Kagaj",
   },
+  en: {
+    electricity_bill: "⚡ Electricity bill", water_bill: "💧 Water bill", gas_bill: "🔥 Gas bill",
+    phone_bill: "📱 Phone bill", medical_prescription: "🩺 Doctor's prescription",
+    medicine_strip: "💊 Medicine strip", receipt: "🧾 Receipt", unknown: "📄 Paper",
+  },
 };
 
 async function loadFamily() {
@@ -316,8 +404,53 @@ async function loadFamily() {
     });
     flipIn([...box.children]);
   } catch (e) {
-    $("trend-note").textContent = e.message.includes("PIN") ? t().pinErr : e.message;
+    $("trend-note").textContent = e.status === 401 ? t().needPinFirst
+      : e.message.includes("PIN") ? t().pinErr : e.message;
   }
+}
+
+/* ---------- my private space ---------- */
+async function ensureSpace() {
+  try {
+    const r = await api.familyEnsure(
+      localStorage.getItem("bb-family") && localStorage.getItem("bb-family") !== "default"
+        ? localStorage.getItem("bb-family") : null);
+    setFamCode(r.code);
+    $("space-code").textContent = r.code;
+  } catch { $("space-code").textContent = famCode(); }
+}
+
+function initSpace() {
+  $("btn-setpin").onclick = async () => {
+    const np = $("new-pin").value.trim();
+    $("space-msg").textContent = "";
+    if (np.length < 4) { $("space-msg").textContent = t().pinNeed; return; }
+    try {
+      const cur = $("pin").value.trim();
+      await api.familyPin(famCode(), cur, np);
+      $("new-pin").value = "";
+      $("space-msg").textContent = t().pinSaved;
+      loadFamily();
+    } catch (e) {
+      $("space-msg").textContent = e.status === 401 ? t().pinWrong : e.message;
+    }
+  };
+  $("btn-join").onclick = async () => {
+    const code = $("join-code").value.trim();
+    const pin = $("join-pin").value.trim();
+    $("space-msg").textContent = "";
+    if (!code) return;
+    try {
+      const r = await api.familyJoin(code, pin);
+      setFamCode(r.code);
+      $("space-code").textContent = r.code;
+      $("join-code").value = ""; $("join-pin").value = "";
+      $("space-msg").textContent = t().joined;
+      loadFamily();
+    } catch {
+      $("space-msg").textContent = t().joinFail;
+    }
+  };
 }
 
 /* ---------- wire up ---------- */
@@ -367,6 +500,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initLang();
   initTabs();
   initInputs();
+  initSpace();
+  ensureSpace();
   initPWA();
   initHero();
   rotateTagline($("tagline-rot"), () => t().taglines);

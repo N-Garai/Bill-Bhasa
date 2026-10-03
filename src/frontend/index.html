@@ -34,10 +34,17 @@
       <p class="tagline"><span id="tagline-rot">Har kagaz, aapki bhasha mein.</span></p>
     </div>
   </div>
+  <div class="top-right">
+  <div class="lang-pill top-lang" role="group" aria-label="Language / Bhasha">
+    <button id="lang-en" class="lang-btn" aria-pressed="false">EN</button>
+    <button id="lang-hi" class="lang-btn active" aria-pressed="true">हिंदी</button>
+    <button id="lang-bn" class="lang-btn" aria-pressed="false">বাংলা</button>
+  </div>
   <nav class="modes" role="tablist" aria-label="Mode">
     <button id="tab-amma" class="mode-btn active" role="tab" aria-selected="true">🏠 Saral</button>
     <button id="tab-family" class="mode-btn" role="tab" aria-selected="false">📚 Parivar</button>
   </nav>
+  </div>
 </header>
 
 <main>
@@ -66,10 +73,6 @@
   <!-- ============ SARAL (AMMA) MODE ============ -->
   <section id="view-amma" class="view active" role="tabpanel" aria-label="Saral">
     <div class="amma-card lamp-card">
-      <div class="lang-pill" role="group" aria-label="Bhasha / Bhasha chuniye">
-        <button id="lang-hi" class="lang-btn active" aria-pressed="true">हिंदी</button>
-        <button id="lang-bn" class="lang-btn" aria-pressed="false">বাংলা</button>
-      </div>
       <p class="amma-hi" id="amma-hi">Namaste! 🙏</p>
       <p class="amma-sub" id="amma-sub">Koi kagaz samajhna ho to neeche dabaiye</p>
       <button id="btn-camera" class="camera-btn" aria-label="Photo lijiye">
@@ -139,6 +142,29 @@
       <h3 id="trend-h">Mahine ka kharcha</h3>
       <canvas id="spark" width="600" height="120"></canvas>
       <p id="trend-note" class="trend-note">PIN daal kar “Dekhiye” dabaiye.</p>
+    </div>
+    <div class="space-card lamp-card">
+      <h3 id="space-h">🔐 Apni niji jagah</h3>
+      <p class="trend-note" id="space-sub">Har visitor ki apni alag diary hoti hai.</p>
+      <p class="code-line" id="space-code-line">Aapka family code: <b id="space-code">…</b></p>
+      <div class="space-grid">
+        <div class="space-box">
+          <label id="lbl-newpin" for="new-pin">Apna PIN lagayein (4+ ank)</label>
+          <div class="pin-row">
+            <input id="new-pin" type="password" inputmode="numeric" maxlength="32" placeholder="••••" />
+            <button id="btn-setpin" class="btn-soft">PIN rakhein</button>
+          </div>
+        </div>
+        <div class="space-box">
+          <label id="lbl-join" for="join-code">Rishtedaar ka code jodiye</label>
+          <div class="pin-row">
+            <input id="join-code" type="text" maxlength="24" placeholder="CODE-12AB" autocapitalize="characters" />
+            <input id="join-pin" type="password" inputmode="numeric" maxlength="32" placeholder="PIN" />
+            <button id="btn-join" class="btn-soft">Jodiye</button>
+          </div>
+        </div>
+      </div>
+      <p id="space-msg" class="trend-note"></p>
     </div>
     <div id="cards" class="cards"></div>
   </section>

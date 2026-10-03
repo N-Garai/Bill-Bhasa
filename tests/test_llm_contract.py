@@ -48,3 +48,12 @@ def test_bengali_explains_in_bangla():
 def test_bengali_empty_is_bangla_retry():
     out, _ = llm.explain("", lang="bn")
     assert "alo" in out["summary_hi"]
+
+
+def test_english_explains_in_english():
+    text = "CITY ELECTRICITY BOARD\nTotal Amount: Rs. 540\nDue Date: 12-10-2026"
+    out, _ = llm.explain(text, lang="en")
+    assert out["doc_type"] == "electricity_bill"
+    assert out["amount"] == 540
+    assert out["summary_hi"].startswith("Hello")
+    assert any("Total amount" in p for p in out["key_points_hi"])

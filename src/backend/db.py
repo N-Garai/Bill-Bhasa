@@ -32,6 +32,22 @@ def init_db() -> None:
     from . import models  # noqa: F401  (register tables)
 
     Base.metadata.create_all(bind=engine)
+    _migrate()
+
+
+def _migrate() -> None:
+    """Lightweight additive migration for DBs created by older versions."""
+    from sqlalchemy import inspect, text
+
+    try:
+        insp = inspect(engine)
+        if "documents" in insp.get_table_names():
+            cols = {c["name"] for c in insp.get_columns("documents")}
+            if "family_code" not in cols:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN family_code VARCHAR(24) DEFAULT 'default'"))
+    except Exception:
+        pass  # fresh create_all above already covers new installs
 
 
 def get_session():

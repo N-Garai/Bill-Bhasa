@@ -1,5 +1,5 @@
 /* BillBhasha service worker — app shell cached for home-screen use. */
-const CACHE = "billbhasha-v2";
+const CACHE = "billbhasha-v3";
 const SHELL = ["/", "/assets/css/styles.css", "/assets/js/app.js",
   "/assets/js/api.js", "/assets/js/speech.js",
   "/assets/js/animations.js", "/assets/js/three-hero.js"];

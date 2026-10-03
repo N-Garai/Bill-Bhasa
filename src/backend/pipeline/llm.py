@@ -174,6 +174,32 @@ _T = {
         "act_none": "kichu korar dorkar nei",
         "disc_med": "oshudh ba dose bodlanor age daktar/pharmacist-ke jigyasa korun",
     },
+    "en": {
+        "titles": {
+            "electricity_bill": ("electricity bill", "this looks like your home electricity bill"),
+            "water_bill": ("water bill", "this looks like a water bill"),
+            "gas_bill": ("gas bill", "this looks like a gas bill"),
+            "phone_bill": ("phone bill", "this looks like a mobile/phone bill"),
+            "medical_prescription": ("doctor's prescription", "this looks like a doctor's prescription"),
+            "medicine_strip": ("medicine strip", "this looks like a medicine strip paper"),
+            "receipt": ("shop receipt", "this looks like a shop receipt"),
+            "unknown": ("paper", "this looks like some bill or prescription paper"),
+        },
+        "hello": "Hello!",
+        "with_amount": "This {title} shows a total of ₹{amount}. ",
+        "no_amount": "I could not read the amount clearly — please retake the photo in better light. ",
+        "with_due": "The last date written is {due}. ",
+        "closer": "Don't worry, the main points are below.",
+        "amt_pt": "Total amount: ₹{amount}",
+        "due_pt": "Last date to pay: {due}",
+        "date_pt": "Date on the paper: {date}",
+        "org_pt": "Name/place written on top: {org}",
+        "retry_pt": "Amount or date is not clear — please retake the photo",
+        "act_bill": "Keep this paper safe and pay on time",
+        "act_med": "Take your medicines on time",
+        "act_none": "nothing needs to be done",
+        "disc_med": "before changing any medicine or dose, please ask your doctor/pharmacist",
+    },
 }
 
 

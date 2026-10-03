@@ -21,7 +21,8 @@ from .preprocess import load_and_prepare
 _lock = asyncio.Lock()
 
 
-async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory) -> None:
+async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
+                 family_code: str = "default") -> None:
     async with _lock:  # never overlap heavy stages on 512MB
         timings: dict[str, float] = {}
         t_all = time.perf_counter()
@@ -39,7 +40,7 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory) ->
             _save(doc_id, session_factory, image_bytes=small_jpg,
                   ocr_text=ocr_text, ocr_confidence=conf, status="thinking")
 
-            past = _past_amounts(doc_id, session_factory, limit=6)
+            past = _past_amounts(doc_id, session_factory, family_code, limit=6)
             hint = anomaly_stage.build_history_hint(past, lang)
 
             t0 = time.perf_counter()
@@ -48,7 +49,7 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory) ->
             timings["thinking"] = round(time.perf_counter() - t0, 2)
 
             # Anomaly compares against same-type history once type is known.
-            past_typed = _past_amounts(doc_id, session_factory, limit=6,
+            past_typed = _past_amounts(doc_id, session_factory, family_code, limit=6,
                                        doc_type=explanation.get("doc_type"))
             flag = anomaly_stage.detect(past_typed or past,
                                         _as_float(explanation.get("amount")), lang)
@@ -105,12 +106,14 @@ def _save(doc_id: str, session_factory, **fields) -> None:
         s.close()
 
 
-def _past_amounts(doc_id: str, session_factory, limit: int = 6,
-                  doc_type: str | None = None) -> list[float]:
+def _past_amounts(doc_id: str, session_factory, family_code: str = "default",
+                  limit: int = 6, doc_type: str | None = None) -> list[float]:
     s = _session(session_factory)
     try:
         q = (s.query(Document.amount)
-             .filter(Document.id != doc_id, Document.amount.is_not(None),
+             .filter(Document.id != doc_id,
+                     Document.family_code == family_code,
+                     Document.amount.is_not(None),
                      Document.status == "done")
              .order_by(Document.created_at.desc()))
         if doc_type and doc_type != "unknown":

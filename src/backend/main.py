@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import config
+from . import family as family_mod
 from .db import SessionLocal, init_db
 from .models import Document
 from .pipeline import runner
@@ -50,9 +51,21 @@ def _db():
         s.close()
 
 
-def _need_pin(x_family_pin: str | None = Header(default=None, alias="X-Family-Pin")) -> None:
-    if config.FAMILY_PIN and x_family_pin != config.FAMILY_PIN:
-        raise HTTPException(status_code=401, detail="Parivar PIN galat hai")
+def _family_code(x_family_code: str | None = Header(default=None, alias="X-Family-Code")) -> str:
+    return family_mod.normalize(x_family_code)
+
+
+def _need_pin(code: str = Depends(_family_code),
+              x_family_pin: str | None = Header(default=None, alias="X-Family-Pin"),
+              db=Depends(_db)) -> str:
+    """Each family space guards itself with its own PIN.
+
+    Site-owner FAMILY_PIN (if set) still works as a master key everywhere.
+    """
+    s = db
+    if not family_mod.check(s, code, x_family_pin, config.FAMILY_PIN):
+        raise HTTPException(status_code=401, detail="PIN galat hai")
+    return code
 
 
 def _doc_to_result(doc: Document) -> ScanResult:
@@ -83,11 +96,40 @@ def ready():
     return {"ready": True, "message": "Namaste! Main taiyaar hoon."}
 
 
+# --- family spaces ---------------------------------------------------------
+@app.post("/api/family/ensure")
+def family_ensure(payload: dict, db=Depends(_db)):
+    """Hand out a personal space (or confirm an existing code). Never needs auth."""
+    code, has_pin = family_mod.ensure(db, payload.get("code"))
+    return {"code": code, "has_pin": has_pin}
+
+
+@app.post("/api/family/join")
+def family_join(payload: dict, db=Depends(_db)):
+    """Join a relative's space: needs their code + their PIN (if they set one)."""
+    code = family_mod.normalize(payload.get("code"))
+    if not family_mod.check(db, code, payload.get("pin"), config.FAMILY_PIN):
+        raise HTTPException(status_code=401, detail="Code ya PIN galat hai")
+    family_mod.ensure(db, code)
+    return {"code": code, "joined": True}
+
+
+@app.post("/api/family/pin")
+def family_pin(payload: dict, db=Depends(_db)):
+    """Set or change your own space's PIN (needs the current one, if any)."""
+    code = family_mod.normalize(payload.get("code"))
+    ok, msg = family_mod.set_pin(db, code, payload.get("pin"), payload.get("new_pin", ""), config.FAMILY_PIN)
+    if not ok:
+        raise HTTPException(status_code=401 if msg == "pin-wrong" else 400, detail=msg)
+    return {"code": code, "pin_set": True}
+
+
 # --- scan flow -------------------------------------------------------------
 @app.post("/api/scan", response_model=ScanCreated)
 async def create_scan(background: BackgroundTasks,
                       image: UploadFile = File(...),
-                      lang: str = Form(default="hi")):
+                      lang: str = Form(default="hi"),
+                      family: str = Form(default="default")):
     data = await image.read()
     limit = int(config.MAX_UPLOAD_MB * 1024 * 1024)
     if len(data) > limit:
@@ -97,18 +139,22 @@ async def create_scan(background: BackgroundTasks,
         if image.content_type not in (None, "", "application/octet-stream"):
             raise HTTPException(status_code=415, detail="Kripya photo (JPG/PNG) bhejein.")
     doc_id = str(uuid.uuid4())
+    code = family_mod.normalize(family)
     s = SessionLocal()
     try:
-        s.add(Document(id=doc_id, language=(lang or "hi")[:8], status="received"))
+        family_mod.ensure(s, code)
+        s.add(Document(id=doc_id, family_code=code,
+                       language=(lang or "hi")[:8], status="received"))
         s.commit()
     finally:
         s.close()
-    background.add_task(runner.run_scan, doc_id, data, (lang or "hi")[:8], SessionLocal)
+    background.add_task(runner.run_scan, doc_id, data, (lang or "hi")[:8], SessionLocal, code)
     return ScanCreated(id=doc_id)
 
 
 @app.post("/api/scan-text", response_model=ScanCreated)
-async def create_scan_text(background: BackgroundTasks, payload: dict):
+async def create_scan_text(background: BackgroundTasks, payload: dict,
+                           code: str = Depends(_family_code)):
     """Typed/pasted text path — works even with zero OCR on the box."""
     text = str(payload.get("text", ""))[:3000]
     lang = str(payload.get("lang", "hi"))[:8] or "hi"
@@ -117,7 +163,8 @@ async def create_scan_text(background: BackgroundTasks, payload: dict):
     doc_id = str(uuid.uuid4())
     s = SessionLocal()
     try:
-        s.add(Document(id=doc_id, ocr_text=text, ocr_confidence=100.0,
+        family_mod.ensure(s, code)
+        s.add(Document(id=doc_id, family_code=code, ocr_text=text, ocr_confidence=100.0,
                        language=lang, status="thinking"))
         s.commit()
     finally:
@@ -131,7 +178,8 @@ async def create_scan_text(background: BackgroundTasks, payload: dict):
         ss = SessionLocal()
         try:
             rows = (ss.query(Document.amount)
-                    .filter(Document.amount.is_not(None), Document.status == "done")
+                    .filter(Document.family_code == code,
+                            Document.amount.is_not(None), Document.status == "done")
                     .order_by(Document.created_at.desc()).limit(6).all())
             past = [float(r[0]) for r in rows if r[0] is not None]
         finally:
@@ -167,20 +215,23 @@ async def create_scan_text(background: BackgroundTasks, payload: dict):
     return ScanCreated(id=doc_id)
 
 
-@app.get("/api/scan/{doc_id}/status", response_model=ScanStatus)
-def scan_status(doc_id: str, db=Depends(_db)):
+def _own_doc(db, doc_id: str, code: str) -> Document:
     doc = db.get(Document, doc_id)
-    if not doc:
+    if not doc or (doc.family_code or "default") != code:
         raise HTTPException(status_code=404, detail="Nahi mila")
+    return doc
+
+
+@app.get("/api/scan/{doc_id}/status", response_model=ScanStatus)
+def scan_status(doc_id: str, db=Depends(_db), code: str = Depends(_family_code)):
+    doc = _own_doc(db, doc_id, code)
     return ScanStatus(id=doc.id, stage=doc.status or "received",
                       timings=doc.stage_timings or {})
 
 
 @app.get("/api/scan/{doc_id}", response_model=ScanResult)
-def scan_result(doc_id: str, db=Depends(_db)):
-    doc = db.get(Document, doc_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Nahi mila")
+def scan_result(doc_id: str, db=Depends(_db), code: str = Depends(_family_code)):
+    doc = _own_doc(db, doc_id, code)
     if doc.status == "error":
         raise HTTPException(status_code=500,
                             detail="Maaf kijiye, padhne mein dikkat aayi. Dobara koshish kijiye.")
@@ -188,29 +239,28 @@ def scan_result(doc_id: str, db=Depends(_db)):
 
 
 @app.get("/api/scan/{doc_id}/audio")
-def scan_audio(doc_id: str, db=Depends(_db)):
-    doc = db.get(Document, doc_id)
-    if not doc or not doc.audio_ogg:
+def scan_audio(doc_id: str, db=Depends(_db), code: str = Depends(_family_code)):
+    doc = _own_doc(db, doc_id, code)
+    if not doc.audio_ogg:
         raise HTTPException(status_code=404, detail="Audio taiyaar nahi hai")
     return Response(content=bytes(doc.audio_ogg), media_type="audio/ogg",
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.delete("/api/scan/{doc_id}")
-def delete_scan(doc_id: str, db=Depends(_db)):
-    doc = db.get(Document, doc_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Nahi mila")
+def delete_scan(doc_id: str, db=Depends(_db), code: str = Depends(_family_code)):
+    doc = _own_doc(db, doc_id, code)
     db.delete(doc)
     db.commit()
     return {"deleted": True}
 
 
-# --- family views (PIN-gated only when FAMILY_PIN is set) ------------------
+# --- family views (each space guards itself with its own PIN) --------------
 @app.get("/api/history", response_model=list[HistoryItem])
-def history(limit: int = 30, db=Depends(_db), _pin: None = Depends(_need_pin)):
+def history(limit: int = 30, db=Depends(_db), code: str = Depends(_need_pin)):
     limit = max(1, min(limit, 100))
-    docs = (db.query(Document).filter(Document.status == "done")
+    docs = (db.query(Document)
+            .filter(Document.family_code == code, Document.status == "done")
             .order_by(Document.created_at.desc()).limit(limit).all())
     out: list[HistoryItem] = []
     for d in docs:
@@ -224,9 +274,10 @@ def history(limit: int = 30, db=Depends(_db), _pin: None = Depends(_need_pin)):
 
 
 @app.get("/api/trends")
-def trends(db=Depends(_db), _pin: None = Depends(_need_pin)):
-    docs = (db.query(Document).filter(Document.status == "done",
-                                      Document.amount.is_not(None))
+def trends(db=Depends(_db), code: str = Depends(_need_pin)):
+    docs = (db.query(Document)
+            .filter(Document.family_code == code, Document.status == "done",
+                    Document.amount.is_not(None))
             .order_by(Document.created_at.asc()).limit(500).all())
     by_month: dict[str, float] = {}
     by_type: dict[str, float] = {}

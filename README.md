@@ -1,17 +1,22 @@
-# BillBhasha — *Har kagaz, aapki bhasha mein.* / *Protek kagaj, apnar bhashay.*
+# BillBhasha — *Har kagaz, aapki bhasha mein.* / *Protek kagaj, apnar bhashay.* / *Every paper, in your language.*
 
 Photo kheenchiye, kagaz ko apni bhasha mein **suniye**. Bijli bill, parcha,
-raseed — sab seedhe-saral shabdon mein, bade buttonon ke saath. **Hindi aur
-Bangla**, dono mein.
+raseed — sab seedhe-saral shabdon mein, bade buttonon ke saath. **Hindi,
+Bangla aur English** — the top-bar switcher changes the whole site *and* the
+AI's language together.
 
 Two experiences in one installable app:
 
-- **🏠 Saral / Sohaj** — one giant camera button. Photo → spoken explanation.
-  Made for low-vision, Hindi/Bangla-first hands. Zero menus.
-- **📚 Parivar / Poribar** — history cards, monthly spend chart, gentle spike
+- **🏠 Saral / Sohaj / Simple** — one giant camera button. Photo → spoken explanation. Made for
+  low-vision, Hindi/Bangla/English-first hands. Zero menus.
+- **📚 Parivar / Poribar / Family** — history cards, monthly spend chart, gentle spike
   warnings ("yeh ₹120 zyada hai") for the family member who looks after things.
 
-Privacy-first: your papers stay yours. One-tap delete really deletes.
+Privacy-first: **every visitor automatically gets their own private family
+space** (a code like `DEEP-4F8K` stored in their browser) — strangers opening
+your link never see your diary. Set **your own PIN** on your space, and let
+relatives join it from their phones with the same code (+ PIN if you set one).
+One-tap delete really deletes.
 
 ---
 
@@ -60,9 +65,10 @@ py -m uvicorn src.backend.main:app --port 8000
 
 Open **http://localhost:8000** 🌼
 
-> No camera needed to try it — use the *"likh kar bhejiye / likhe pathan"*
-> box with a sample from [`data/samples/README.md`](data/samples/README.md).
-> Switch **हिंदी / বাংলা** on the Saral card anytime; it sticks.
+> No camera needed to try it — use the *"likh kar bhejiye / likhe pathan /
+> write here"* box with a sample from [`data/samples/README.md`](data/samples/README.md).
+> Switch **EN / हिंदी / বাংলা** in the top bar anytime; it sticks, and the
+> AI answers in the same language.
 
 **Useful commands:**
 
@@ -81,9 +87,9 @@ py -m uvicorn src.backend.main:app --port 8000 --reload   # dev loop
 | `GROQ_API_KEY` | *(empty)* | Free Groq key → bigger open-weight answer when the on-box helper is unsure |
 | `TESS_LANG` | `eng+hin` | OCR languages; `+ben` auto-added when Bangla is selected (needs `ben.traineddata`, baked into Docker) |
 | `PIPER_VOICE` | `/models/hi_IN-pratham-medium.onnx` | Server Hindi voice; browsers fall back to their own Hindi/Bangla voice |
-| `FAMILY_PIN` | *(empty)* | Locks Parivar history/trends behind a family PIN |
+| `FAMILY_PIN` | *(empty)* | **Master key** for the site owner: unlocks every family space. Each visitor sets **their own PIN** inside the app (Parivar → private space card); this env var is only your override |
 | `MAX_UPLOAD_MB` | `6` | Upload cap (free-tier RAM discipline) |
-| `DEFAULT_LANG` | `hi` | `hi` or `bn` |
+| `DEFAULT_LANG` | `hi` | `hi`, `bn` or `en` |
 
 ---
 
@@ -143,7 +149,13 @@ py -m uvicorn src.backend.main:app --port 8000 --reload   # dev loop
 **API:** `POST /api/scan` · `POST /api/scan-text` · `GET /api/scan/{id}/status`
 · `GET /api/scan/{id}` · `GET /api/scan/{id}/audio` · `GET /api/history`
 · `GET /api/trends` · `POST /api/speak` · `DELETE /api/scan/{id}` ·
+`POST /api/family/ensure` · `POST /api/family/join` · `POST /api/family/pin` ·
 `GET /api/health` · `GET /api/ready`
+
+Every request carries `X-Family-Code` (auto-assigned per browser) so
+histories, trends and spike comparisons are **scoped to one family space**;
+`X-Family-Pin` unlocks spaces whose owner set a PIN. Document lookups verify
+ownership, so IDs can't be guessed across spaces.
 
 ---
 
