@@ -203,6 +203,10 @@ _T = {
 }
 
 
+def _fmt_amt(amount: float) -> str:
+    return f"{amount:,.0f}" if float(amount).is_integer() else f"{amount:,.2f}"
+
+
 def heuristic_explain(ocr_text: str, lang: str = "hi") -> dict:
     lang = (lang or "hi")[:2]
     t = _T.get(lang, _T["hi"])
@@ -219,7 +223,7 @@ def heuristic_explain(ocr_text: str, lang: str = "hi") -> dict:
 
     title, opener = t["titles"].get(doc_type, t["titles"]["unknown"])
     if amount is not None:
-        summary = f"{t['hello']} {opener}. " + t["with_amount"].format(title=title, amount=f"{amount:,.0f}")
+        summary = f"{t['hello']} {opener}. " + t["with_amount"].format(title=title, amount=_fmt_amt(amount))
     else:
         summary = f"{t['hello']} {opener}. " + t["no_amount"]
     if due:
@@ -228,7 +232,7 @@ def heuristic_explain(ocr_text: str, lang: str = "hi") -> dict:
 
     points: list[str] = []
     if amount is not None:
-        points.append(t["amt_pt"].format(amount=f"{amount:,.0f}"))
+        points.append(t["amt_pt"].format(amount=_fmt_amt(amount)))
     if due:
         points.append(t["due_pt"].format(due=due))
     elif date:

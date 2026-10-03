@@ -26,7 +26,10 @@ def run_ocr(prepared: Image.Image, lang: str = "hi") -> tuple[str, float]:
     if not tesseract_available():
         return "", 0.0
     tess_lang = config.TESS_LANG
-    if (lang or "hi")[:2] == "bn" and "ben" not in tess_lang:
+    short = (lang or "hi")[:2]
+    if short == "en":
+        tess_lang = "eng"  # one language = faster + sharper on a 0.1-CPU box
+    elif short == "bn" and "ben" not in tess_lang:
         tess_lang = tess_lang + "+ben"  # needs ben.traineddata (see Dockerfile)
     try:
         with tempfile.TemporaryDirectory() as tmp:

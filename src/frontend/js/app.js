@@ -19,6 +19,7 @@ const toast = (msg) => {
 
 let LANG = (localStorage.getItem("bb-lang") || "hi").slice(0, 2);
 if (!["hi", "bn", "en"].includes(LANG)) LANG = "hi";
+let slowMode = localStorage.getItem("bb-slow") === "1";
 
 const STRINGS = {
   hi: {
@@ -35,12 +36,14 @@ const STRINGS = {
     camTxt: "Photo Lijiye", pick: "🖼️ Gallery se chuniye", orWrite: "ya likh kar bhejiye",
     ph: "Yahaan likhiye… jaise: bijli bill 540 rupaye", send: "✉️ Bhejiye",
     kicker: "Aapke liye samjhaya", play: "▶ Suniye", pause: "⏸ Rukiye",
+    slow: "🐢 Dheere", normal: "⚡ Normal",
     listening: "🔊 Sun rahe hain…", replay: "▶ Dobara suniye",
     again: "🔄 Naya photo", del: "🗑️ Ye hata dijiye",
     famH: "Parivar ki diary 📒", famSub: "Pichhle kagaz, kharcha aur zaroori nishaan — sab ek jagah.",
     pinPh: "Parivar PIN (agar lagaya ho)", load: "Dekhiye", trendH: "Mahine ka kharcha",
     tabHome: "🏠 Saral", tabFam: "📚 Parivar",
     stages: { received: "Mil gaya…", cleaning: "Saaf kar rahe…", reading: "Padh rahe…", thinking: "Samajh rahe…", speaking: "Bole rahe…", done: "Ho gaya!", error: "Arre!" },
+    stepNames: { cleaning: "Saaf kar rahe", reading: "Padh rahe", thinking: "Samajh rahe", speaking: "Bole rahe", done: "Ho gaya" },
     notes: { received: "Photo mil gayi, bas shuru kar rahe hain…", cleaning: "Dhool-mitti hata kar saaf kar rahe hain…", reading: "Akshar-akshar padh rahe hain…", thinking: "Saral shabdon mein samajh rahe hain…", speaking: "Awaaz taiyaar kar rahe hain…", done: "Taiyaar! Neeche suniye 🌼", error: "Maaf kijiye — dobara koshish kijiye." },
     errRead: "Maaf kijiye, padhne mein dikkat aayi. Roshni mein dobara photo lijiye 🙏",
     ready: "Taiyaar hai! “Suniye” dabakar suniye 🌼",
@@ -65,6 +68,7 @@ const STRINGS = {
     joined: "Jud gaye! Ab diary shared hai 🤝",
     joinFail: "Code ya PIN galat — dobara dekhiye.",
     needPinFirst: "Is jagah par PIN laga hai — upar PIN daal kar “Dekhiye” dabaiye 🔑",
+    otherLang: "Ye jawab scan wali bhasha mein hai — bhasha badal kar dobara bhejein 🌐",
   },
   bn: {
     taglines: [
@@ -80,12 +84,14 @@ const STRINGS = {
     camTxt: "Chobi Tulun", pick: "🖼️ Gallery theke bachun", orWrite: "ba likhe pathan",
     ph: "Ekhane likhun… jemon: bijli bill 540 taka", send: "✉️ Pathan",
     kicker: "Apnar jonno bujhiye dilam", play: "▶ Shunun", pause: "⏸ Thaman",
+    slow: "🐢 Aste", normal: "⚡ Sadharon",
     listening: "🔊 Shunchen…", replay: "▶ Abar shunun",
     again: "🔄 Notun chobi", del: "🗑️ Eta muche din",
     famH: "Poribarer diary 📒", famSub: "Ager kagaj, khoroch ar joruri nishan — sob ek jaygay.",
     pinPh: "Poribar PIN (jodi lagano thake)", load: "Dekhun", trendH: "Maasher khoroch",
     tabHome: "🏠 Sohaj", tabFam: "📚 Poribar",
     stages: { received: "Peyechi…", cleaning: "Porishkar korchi…", reading: "Porchi…", thinking: "Bujhchi…", speaking: "Bolchi…", done: "Hoye geche!", error: "Aare!" },
+    stepNames: { cleaning: "Porishkar korchi", reading: "Porchi", thinking: "Bujhchi", speaking: "Bolchi", done: "Hoye geche" },
     notes: { received: "Chobi peye gechi, sudhu shuru korchi…", cleaning: "Dhulo-moila sariye porishkar korchi…", reading: "Akkhor-akkor pore porchi…", thinking: "Sohoj kothay bujhchi…", speaking: "Awaaz toiri korchi…", done: "Toiri! Niche shunun 🌼", error: "Dukkhito — abar chesta korun." },
     errRead: "Dukkhito, porte oshubidha holo. Alo te abar chobi tulun 🙏",
     ready: "Toiri! “Shunun” chepe shunun 🌼",
@@ -110,6 +116,7 @@ const STRINGS = {
     joined: "Jog hoye geche! Ebar shared diary dekhun 🤝",
     joinFail: "Code ba PIN vul — abar dekhun.",
     needPinFirst: "Ei jagay PIN lagano — upore PIN diye “Dekhun” chapun 🔑",
+    otherLang: "Ei uttor scan-er bhashay ache — bhasha bodle abar pathan 🌐",
   },
   en: {
     taglines: [
@@ -125,12 +132,14 @@ const STRINGS = {
     camTxt: "Take Photo", pick: "🖼️ Choose from gallery", orWrite: "or write it here",
     ph: "Write here… e.g.: electricity bill 540 rupees", send: "✉️ Send",
     kicker: "Explained for you", play: "▶ Listen", pause: "⏸ Pause",
+    slow: "🐢 Slow", normal: "⚡ Normal",
     listening: "🔊 Listening…", replay: "▶ Listen again",
     again: "🔄 New photo", del: "🗑️ Delete this",
     famH: "Family diary 📒", famSub: "Past papers, spending and important flags — all in one place.",
     pinPh: "Family PIN (if set)", load: "View", trendH: "Monthly spending",
     tabHome: "🏠 Simple", tabFam: "📚 Family",
     stages: { received: "Got it…", cleaning: "Cleaning…", reading: "Reading…", thinking: "Understanding…", speaking: "Speaking…", done: "Done!", error: "Oops!" },
+    stepNames: { cleaning: "Cleaning", reading: "Reading", thinking: "Understanding", speaking: "Speaking", done: "Done" },
     notes: { received: "Photo received, just starting…", cleaning: "Wiping off dust and cleaning…", reading: "Reading letter by letter…", thinking: "Understanding in simple words…", speaking: "Preparing the voice…", done: "Ready! Listen below 🌼", error: "Sorry — please try again." },
     errRead: "Sorry, had trouble reading. Please retake the photo in better light 🙏",
     ready: "Ready! Press “Listen” to hear it 🌼",
@@ -155,6 +164,7 @@ const STRINGS = {
     joined: "Joined! Now you share one diary 🤝",
     joinFail: "Wrong code or PIN — check again.",
     needPinFirst: "This space has a PIN — enter it above and press “View” 🔑",
+    otherLang: "This answer is in the scan's language — switch language and resend 🌐",
   },
 };
 const t = () => STRINGS[LANG];
@@ -199,6 +209,9 @@ function applyLang() {
   $("text-input").placeholder = s.ph;
   $("btn-send").textContent = s.send;
   $("res-kicker").textContent = s.kicker;
+  const spd = $("btn-speed");
+  spd.textContent = slowMode ? s.normal : s.slow;
+  spd.classList.toggle("on", slowMode);
   $("btn-again").textContent = s.again;
   $("btn-del").textContent = s.del;
   $("fam-h").textContent = s.famH;
@@ -216,6 +229,10 @@ function applyLang() {
   $("lbl-join").textContent = s.lblJoin;
   $("btn-join").textContent = s.joinBtn;
   $("join-code").placeholder = s.joinCodePh;
+  document.querySelectorAll(".steps li").forEach((li) => {
+    const name = s.stepNames[li.dataset.s];
+    if (name) li.querySelector("span").textContent = name;
+  });
   const pills = { hi: $("lang-hi"), bn: $("lang-bn"), en: $("lang-en") };
   for (const [k, b] of Object.entries(pills)) {
     b.classList.toggle("active", LANG === k);
@@ -250,6 +267,42 @@ function initTabs() {
 }
 
 /* ---------- scan flow ---------- */
+/* Shrink big phone photos in the browser: faster upload + much faster OCR
+   on tiny servers. Falls back to the original file on any error. */
+function shrinkImage(file, maxSide = 1280) {
+  return new Promise((resolve) => {
+    try {
+      if (!file || !file.type.startsWith("image/")) return resolve(file);
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+          if (scale >= 1 && file.size < 900 * 1024) {
+            URL.revokeObjectURL(url);
+            return resolve(file);
+          }
+          const c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(img.width * scale));
+          c.height = Math.max(1, Math.round(img.height * scale));
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          c.toBlob((b) => resolve(b || file), "image/jpeg", 0.82);
+        } catch { URL.revokeObjectURL(url); resolve(file); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    } catch { resolve(file); }
+  });
+}
+
+let scanT0 = 0;
+function tickClock() {
+  const el = $("proc-time");
+  if (el && !$("proc").classList.contains("hidden")) {
+    el.textContent = "⏱ " + Math.max(0, Math.round((Date.now() - scanT0) / 1000)) + "s";
+  }
+}
 function setSteps(stage) {
   document.querySelectorAll(".steps li").forEach((li) => {
     const s = li.dataset.s;
@@ -268,7 +321,10 @@ function showProc(show) {
 
 async function poll(id) {
   clearInterval(pollTimer);
+  scanT0 = Date.now();
+  $("proc-time").textContent = "⏱ 0s";
   pollTimer = setInterval(async () => {
+    tickClock();
     try {
       const st = await api.status(id);
       setSteps(st.stage);
@@ -289,7 +345,8 @@ async function startScan(file) {
   showProc(true);
   $("proc").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
   try {
-    const { id } = await api.scanImage(file, LANG);
+    const small = await shrinkImage(file);
+    const { id } = await api.scanImage(small, LANG);
     currentId = id;
     poll(id);
   } catch (e) {
@@ -315,6 +372,9 @@ async function showResult(id) {
   try {
     const r = await api.result(id);
     showProc(false);
+    // The answer keeps the language chosen at scan time; say so if the
+    // user switched languages mid-scan (avoids "wrong language" confusion).
+    if ((r.language || "hi").slice(0, 2) !== LANG) toast(t().otherLang);
     const card = $("result");
     card.classList.remove("hidden");
     lampSweep(card);
@@ -331,11 +391,21 @@ async function showResult(id) {
     const audio = $("audio");
     attachWave(audio, $("wave"));
     const btn = $("btn-play");
+    const spd = $("btn-speed");
+    const rate = () => (slowMode ? 0.72 : 1);
+    spd.onclick = () => {
+      slowMode = !slowMode;
+      localStorage.setItem("bb-slow", slowMode ? "1" : "0");
+      spd.textContent = slowMode ? t().normal : t().slow;
+      spd.classList.toggle("on", slowMode);
+      try { audio.playbackRate = slowMode ? 0.75 : 1; } catch { /* noop */ }
+    };
     const speakText = [r.explanation.summary_hi, ...(r.explanation.key_points_hi || []).slice(0, 3), r.anomaly || ""].join(" ");
     let serverOk = false;
     if (r.has_audio) {
       try {
         audio.src = api.audioUrl(id);
+        try { audio.playbackRate = slowMode ? 0.75 : 1; } catch { /* noop */ }
         await audio.play();
         serverOk = true;
         btn.textContent = t().pause;
@@ -344,11 +414,15 @@ async function showResult(id) {
     btn.onclick = async () => {
       if (!audio.paused) { audio.pause(); stopBrowser(); btn.textContent = t().play; return; }
       if (serverOk || r.has_audio) {
-        try { audio.src = api.audioUrl(id); await audio.play(); btn.textContent = t().pause; return; }
+        try {
+          audio.src = api.audioUrl(id);
+          try { audio.playbackRate = slowMode ? 0.75 : 1; } catch { /* noop */ }
+          await audio.play(); btn.textContent = t().pause; return;
+        }
         catch { /* fall through to browser voice */ }
       }
       btn.textContent = t().listening;
-      await speakBrowser(speakText, LANG);
+      await speakBrowser(speakText, LANG, rate());
       btn.textContent = t().replay;
     };
     audio.onended = () => { btn.textContent = t().replay; };
