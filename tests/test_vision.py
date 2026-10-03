@@ -3,8 +3,13 @@ import os
 
 os.environ["GEMMA_API_KEY"] = ""
 
+from src.backend import config  # noqa: E402
 from src.backend.pipeline import ocr, vision  # noqa: E402
 from src.backend.pipeline.llm import _guard_numbers  # noqa: E402
+
+
+def test_default_model_is_verified_served():
+    assert config.GEMMA_VISION_MODEL in vision.VERIFIED_MODELS
 
 
 def test_vision_off_without_key():
@@ -19,6 +24,17 @@ def test_two_pass_ocr_never_crashes():
     blank = Image.new("L", (120, 120), 255)
     text, conf = ocr.run_ocr(blank, blank, lang="en")
     assert isinstance(text, str) and isinstance(conf, float)
+
+
+def test_ocr_shrink_keeps_small_images():
+    from PIL import Image
+
+    from src.backend.pipeline.ocr import _shrink
+
+    tiny = Image.new("L", (200, 100), 255)
+    assert _shrink(tiny, 1000).size == (200, 100)
+    big = Image.new("L", (2000, 1000), 255)
+    assert max(_shrink(big, 1000).size) == 1000
 
 
 def test_transcript_guards_vision_amount():

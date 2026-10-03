@@ -72,6 +72,12 @@ const STRINGS = {
     needPinFirst: "Is jagah par PIN laga hai — upar PIN daal kar “Dekhiye” dabaiye 🔑",
     otherLang: "Ye jawab scan wali bhasha mein hai — bhasha badal kar dobara bhejein 🌐",
     copy: "📋 Copy", copied: "✓ Code copy ho gaya — sambhal kar rakhiye",
+    footDesc: "Photo kheenchiye, suniye, samjhiye — bill, parcha aur raseed, seedhe-saral shabdon mein.",
+    footExplore: "Dekhiye", footTrust: "Bharosa",
+    trust1: "🔒 Har visitor ki apni niji jagah",
+    trust2: "🗑️ Hataane par turant mit jata hai",
+    trust3: "👤 Bina account ke chalta hai",
+    footRights: "© 2026 BillBhasha • Parivar ke liye, pyaar se 🤍",
   },
   bn: {
     taglines: [
@@ -123,6 +129,12 @@ const STRINGS = {
     needPinFirst: "Ei jagay PIN lagano — upore PIN diye “Dekhun” chapun 🔑",
     otherLang: "Ei uttor scan-er bhashay ache — bhasha bodle abar pathan 🌐",
     copy: "📋 Copy", copied: "✓ Code copy hoye geche — jotno kore rakhun",
+    footDesc: "Chobi tulun, shunun, bujhun — bill, prescription ar roshid, sohoj-sorol kothay.",
+    footExplore: "Dekhun", footTrust: "Bishwash",
+    trust1: "🔒 Prottek dorshoker nijer jayga",
+    trust2: "🗑️ Muchle turonto muche jay",
+    trust3: "👤 Account charai chole",
+    footRights: "© 2026 BillBhasha • Poribarer jonno, bhalobasha diye 🤍",
   },
   en: {
     taglines: [
@@ -174,6 +186,12 @@ const STRINGS = {
     needPinFirst: "This space has a PIN — enter it above and press “View” 🔑",
     otherLang: "This answer is in the scan's language — switch language and resend 🌐",
     copy: "📋 Copy", copied: "✓ Code copied — keep it safe",
+    footDesc: "Snap, listen, understand — bills, prescriptions and receipts in simple words.",
+    footExplore: "Explore", footTrust: "Trust",
+    trust1: "🔒 Every visitor gets a private space",
+    trust2: "🗑️ Deleted means gone at once",
+    trust3: "👤 No account needed",
+    footRights: "© 2026 BillBhasha • Made with care for family 🤍",
   },
 };
 const t = () => STRINGS[LANG];
@@ -239,6 +257,16 @@ function applyLang() {
   $("btn-join").textContent = s.joinBtn;
   $("join-code").placeholder = s.joinCodePh;
   $("btn-copy").textContent = s.copy;
+  $("foot-desc").textContent = s.footDesc;
+  $("foot-explore").textContent = s.footExplore;
+  $("foot-saral").textContent = s.tabHome;
+  $("foot-fam").textContent = s.tabFam;
+  $("foot-how").textContent = s.ctaHow;
+  $("foot-trust").textContent = s.footTrust;
+  $("trust1").textContent = s.trust1;
+  $("trust2").textContent = s.trust2;
+  $("trust3").textContent = s.trust3;
+  $("foot-rights").textContent = s.footRights;
   document.querySelectorAll(".steps li").forEach((li) => {
     const name = s.stepNames[li.dataset.s];
     if (name) li.querySelector("span").textContent = name;
@@ -274,6 +302,8 @@ function initTabs() {
   };
   amma.onclick = () => go(true);
   fam.onclick = () => go(false);
+  $("foot-saral").onclick = () => go(true);
+  $("foot-fam").onclick = () => go(false);
 }
 
 /* ---------- scan flow ---------- */
@@ -568,6 +598,10 @@ function initInputs() {
   $("cta-start").onclick = () =>
     $("view-amma").scrollIntoView({ behavior: calm() ? "auto" : "smooth" });
   $("cta-how").onclick = () => $("how-strip").classList.toggle("hidden");
+  $("foot-how").onclick = () => {
+    $("how-strip").classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: calm() ? "auto" : "smooth" });
+  };
   $("btn-again").onclick = () => {
     stopBrowser();
     $("result").classList.add("hidden");

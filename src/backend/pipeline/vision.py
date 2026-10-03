@@ -23,6 +23,11 @@ from .llm import _extract_json, _guard_numbers
 GEN_URL = ("https://generativelanguage.googleapis.com/v1beta/models/"
            "{model}:generateContent?key={key}")
 
+# Model IDs verified as served on the generateContent endpoint
+# (ai.google.dev/gemma/docs/core/gemma_on_gemini_api). On a 404 we retry
+# with the next verified ID before giving up — IDs rot, answers shouldn't.
+VERIFIED_MODELS = ("gemma-4-26b-a4b-it", "gemma-4-31b-it")
+
 # Short machine-readable reason for the last failure (never contains the key).
 last_error: str = ""
 
@@ -60,11 +65,23 @@ def explain_image(jpeg_bytes: bytes, lang: str = "hi") -> tuple[dict, str] | Non
                 ],
             }],
         }).encode()
-        url = GEN_URL.format(model=config.GEMMA_VISION_MODEL, key=config.GEMMA_API_KEY)
-        req = urllib.request.Request(url, data=payload,
-                                     headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            body = json.loads(r.read().decode())
+        models = [config.GEMMA_VISION_MODEL] + [
+            m for m in VERIFIED_MODELS if m != config.GEMMA_VISION_MODEL]
+        for model in models:
+            url = GEN_URL.format(model=model, key=config.GEMMA_API_KEY)
+            req = urllib.request.Request(url, data=payload,
+                                         headers={"Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    body = json.loads(r.read().decode())
+                break
+            except urllib.error.HTTPError as e:
+                last_error = f"http-{e.code}:{model}"
+                if e.code != 404:
+                    return None  # key/quota problems won't heal with another id
+                continue  # unknown model id — try the next verified one
+        else:
+            return None
         text = body["candidates"][0]["content"]["parts"][0]["text"]
         transcript = ""
         for line in text.splitlines():

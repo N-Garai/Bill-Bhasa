@@ -47,6 +47,9 @@ def run_ocr(prepared: Image.Image, retry_gray: Image.Image | None = None,
 
 def _tess(img: Image.Image, tess_lang: str) -> tuple[str, float]:
     try:
+        # Tesseract time grows superlinearly with pixels; 1000px reads
+        # printed bills just as well at a fraction of the weak-CPU cost.
+        img = _shrink(img, config.OCR_MAX_PX)
         with tempfile.TemporaryDirectory() as tmp:
             img_path = Path(tmp) / "page.png"
             img_path.write_bytes(to_png_bytes(img))
@@ -64,6 +67,14 @@ def _tess(img: Image.Image, tess_lang: str) -> tuple[str, float]:
     except Exception:
         # Optional pure-python wrapper as a second chance.
         return _via_pytesseract(img)
+
+
+def _shrink(img: Image.Image, max_px: int) -> Image.Image:
+    w, h = img.size
+    scale = min(1.0, max_px / max(w, h))
+    if scale >= 1.0:
+        return img
+    return img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
 
 
 def _mean_conf(tsv: Path) -> float:

@@ -186,8 +186,22 @@ main,header.topbar,footer.foot{position:relative; z-index:1}
 .doc-card small{color:#6b5f45}
 .doc-card .sum{font-size:.95rem}
 
-.foot{text-align:center; color:var(--mut); padding:26px 16px 60px}
-.foot-small{font-size:.85rem}
+.foot{border-top:1px solid #3a3122; background:rgba(20,17,11,.7);
+  padding:30px clamp(16px,4vw,44px) 40px; color:var(--mut)}
+.foot-grid{display:grid; gap:22px; max-width:1100px; margin:0 auto}
+@media(min-width:720px){.foot-grid{grid-template-columns:1.3fr 1fr 1.2fr}}
+.foot-logo{font-family:"Baloo 2"; font-size:1.3rem; color:var(--txt); margin:0 0 6px}
+.foot-logo span{filter:drop-shadow(0 0 8px rgba(255,184,77,.7))}
+.foot-small{font-size:.9rem; margin:0}
+.foot-h{font-family:"Baloo 2"; font-weight:700; color:var(--amber);
+  text-transform:uppercase; letter-spacing:1.5px; font-size:.8rem; margin:0 0 10px}
+.foot-nav{display:flex; flex-direction:column; align-items:flex-start; gap:6px}
+.foot-link{cursor:pointer; background:none; border:0; color:var(--txt);
+  font-size:1rem; font-weight:700; padding:4px 0; font-family:inherit}
+.foot-link:hover{color:var(--amber)}
+.foot-trust ul{list-style:none; margin:0; padding:0; display:grid; gap:8px; font-size:.92rem}
+.foot-base{max-width:1100px; margin:22px auto 0; padding-top:14px;
+  border-top:1px solid #2a2317; text-align:center}
 .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); z-index:70;
   background:#2a2113; border:1px solid var(--amber); color:var(--txt); padding:12px 22px; border-radius:99px;
   opacity:0; pointer-events:none; transition:.3s; max-width:90vw; text-align:center}
