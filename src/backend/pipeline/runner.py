@@ -25,9 +25,11 @@ _lock = asyncio.Lock()
 async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
                  family_code: str = "default") -> None:
     async with _lock:  # never overlap heavy stages on 512MB
-        timings: dict[str, float] = {}
+        timings: dict = {}
         t_all = time.perf_counter()
+        phase = "starting"
         try:
+            phase = "cleaning"
             _set(doc_id, session_factory, status="cleaning")
             t0 = time.perf_counter()
             prep = await asyncio.to_thread(
@@ -38,6 +40,7 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
                 prepared, small_jpg = prep
                 gray_retry = None
             timings["cleaning"] = round(time.perf_counter() - t0, 2)
+            phase = "reading"
             _set(doc_id, session_factory, status="reading")
 
             t0 = time.perf_counter()
@@ -50,6 +53,7 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
             past = _past_amounts(doc_id, session_factory, family_code, limit=6)
             hint = anomaly_stage.build_history_hint(past, lang)
 
+            phase = "thinking"
             t0 = time.perf_counter()
             vis = None
             if len(ocr_text.strip()) < config.VISION_MIN_CHARS:
@@ -80,6 +84,7 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
                                         _as_float(explanation.get("amount")), lang)
             if flag:
                 explanation["unusual_hi"] = flag
+            phase = "speaking"
             _set(doc_id, session_factory, status="speaking")
 
             t0 = time.perf_counter()
@@ -105,6 +110,7 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
                   language=lang or config.DEFAULT_LANG,
                   audio_ogg=audio, status="done", stage_timings=timings)
         except Exception as exc:  # honest failure, friendly message downstream
+            timings["failed_at"] = phase
             _save(doc_id, session_factory, status="error",
                   stage_timings={**timings, "total": round(time.perf_counter() - t_all, 2),
                                  "error": str(exc)[:300]})

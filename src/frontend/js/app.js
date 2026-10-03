@@ -381,8 +381,10 @@ function showLocalError(msg) {
 
 function showError(st) {
   const tech = (st.timings && st.timings.error) || st.stage;
+  const where = st.timings && st.timings.failed_at ? " @" + st.timings.failed_at : "";
   $("err-title").textContent = t().errTitle;
-  $("err-tech").textContent = t().errTechHead + ": " + tech;
+  $("err-tech").textContent = t().errTechHead + ": " + tech + where +
+    (serverBuild ? " • srv=" + serverBuild : "");
   $("errbox").classList.remove("hidden");
   toast(t().errRead);
   $("errbox").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
