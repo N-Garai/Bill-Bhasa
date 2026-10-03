@@ -38,6 +38,7 @@ const STRINGS = {
     kicker: "Aapke liye samjhaya", play: "▶ Suniye", pause: "⏸ Rukiye",
     slow: "🐢 Dheere", normal: "⚡ Normal",
     detSum: "Photo se kya padha gaya (details)",
+    stageHead: "Charan",
     listening: "🔊 Sun rahe hain…", replay: "▶ Dobara suniye",
     again: "🔄 Naya photo", del: "🗑️ Ye hata dijiye",
     famH: "Parivar ki diary 📒", famSub: "Pichhle kagaz, kharcha aur zaroori nishaan — sab ek jagah.",
@@ -70,6 +71,7 @@ const STRINGS = {
     joinFail: "Code ya PIN galat — dobara dekhiye.",
     needPinFirst: "Is jagah par PIN laga hai — upar PIN daal kar “Dekhiye” dabaiye 🔑",
     otherLang: "Ye jawab scan wali bhasha mein hai — bhasha badal kar dobara bhejein 🌐",
+    copy: "📋 Copy", copied: "✓ Code copy ho gaya — sambhal kar rakhiye",
   },
   bn: {
     taglines: [
@@ -87,6 +89,7 @@ const STRINGS = {
     kicker: "Apnar jonno bujhiye dilam", play: "▶ Shunun", pause: "⏸ Thaman",
     slow: "🐢 Aste", normal: "⚡ Sadharon",
     detSum: "Chobi theke ki pora holo (details)",
+    stageHead: "Dhap",
     listening: "🔊 Shunchen…", replay: "▶ Abar shunun",
     again: "🔄 Notun chobi", del: "🗑️ Eta muche din",
     famH: "Poribarer diary 📒", famSub: "Ager kagaj, khoroch ar joruri nishan — sob ek jaygay.",
@@ -119,6 +122,7 @@ const STRINGS = {
     joinFail: "Code ba PIN vul — abar dekhun.",
     needPinFirst: "Ei jagay PIN lagano — upore PIN diye “Dekhun” chapun 🔑",
     otherLang: "Ei uttor scan-er bhashay ache — bhasha bodle abar pathan 🌐",
+    copy: "📋 Copy", copied: "✓ Code copy hoye geche — jotno kore rakhun",
   },
   en: {
     taglines: [
@@ -136,6 +140,7 @@ const STRINGS = {
     kicker: "Explained for you", play: "▶ Listen", pause: "⏸ Pause",
     slow: "🐢 Slow", normal: "⚡ Normal",
     detSum: "What the photo gave us (details)",
+    stageHead: "Stages",
     listening: "🔊 Listening…", replay: "▶ Listen again",
     again: "🔄 New photo", del: "🗑️ Delete this",
     famH: "Family diary 📒", famSub: "Past papers, spending and important flags — all in one place.",
@@ -168,6 +173,7 @@ const STRINGS = {
     joinFail: "Wrong code or PIN — check again.",
     needPinFirst: "This space has a PIN — enter it above and press “View” 🔑",
     otherLang: "This answer is in the scan's language — switch language and resend 🌐",
+    copy: "📋 Copy", copied: "✓ Code copied — keep it safe",
   },
 };
 const t = () => STRINGS[LANG];
@@ -232,6 +238,7 @@ function applyLang() {
   $("lbl-join").textContent = s.lblJoin;
   $("btn-join").textContent = s.joinBtn;
   $("join-code").placeholder = s.joinCodePh;
+  $("btn-copy").textContent = s.copy;
   document.querySelectorAll(".steps li").forEach((li) => {
     const name = s.stepNames[li.dataset.s];
     if (name) li.querySelector("span").textContent = name;
@@ -392,6 +399,8 @@ async function showResult(id) {
     $("det-sum").textContent = t().detSum;
     $("ocr-prev").textContent =
       (r.ocr_preview || "—") + (r.ocr_confidence ? `  •  ${Math.round(r.ocr_confidence)}%` : "");
+    $("stage-line").textContent = t().stageHead + ": " +
+      Object.entries(r.stage_timings || {}).map(([k, v]) => `${k}=${v}`).join(" • ");
 
     // Voice: server audio first, phone voice as warm backup.
     const audio = $("audio");
@@ -502,6 +511,14 @@ async function ensureSpace() {
 }
 
 function initSpace() {
+  $("btn-copy").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(famCode());
+      $("space-msg").textContent = t().copied;
+    } catch {
+      $("space-msg").textContent = famCode();
+    }
+  };
   $("btn-setpin").onclick = async () => {
     const np = $("new-pin").value.trim();
     $("space-msg").textContent = "";

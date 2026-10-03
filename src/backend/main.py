@@ -84,6 +84,7 @@ def _doc_to_result(doc: Document) -> ScanResult:
         created_at=doc.created_at.isoformat() if doc.created_at else None,
         ocr_confidence=doc.ocr_confidence or 0.0,
         ocr_preview=ocr[:280],
+        stage_timings=doc.stage_timings or {},
     )
 
 

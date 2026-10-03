@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import json
+import urllib.error
 import urllib.request
 
 from .. import config
@@ -22,6 +23,9 @@ from .llm import _extract_json, _guard_numbers
 GEN_URL = ("https://generativelanguage.googleapis.com/v1beta/models/"
            "{model}:generateContent?key={key}")
 
+# Short machine-readable reason for the last failure (never contains the key).
+last_error: str = ""
+
 
 def available() -> bool:
     return bool(config.GEMMA_API_KEY)
@@ -29,7 +33,13 @@ def available() -> bool:
 
 def explain_image(jpeg_bytes: bytes, lang: str = "hi") -> tuple[dict, str] | None:
     """Return (explanation-json, figures-transcript) or None. Never raises."""
-    if not available() or not jpeg_bytes:
+    global last_error
+    last_error = ""
+    if not jpeg_bytes:
+        last_error = "empty-image"
+        return None
+    if not available():
+        last_error = "no-key"
         return None
     try:
         lang = (lang or "hi")[:2]
@@ -66,5 +76,13 @@ def explain_image(jpeg_bytes: bytes, lang: str = "hi") -> tuple[dict, str] | Non
             return None
         guarded = _guard_numbers(parsed, transcript or json.dumps(parsed))
         return guarded, transcript
+    except urllib.error.HTTPError as e:
+        # 400 = bad key/model id, 404 = unknown model, 429 = free-tier limit
+        last_error = f"http-{e.code}"
+        return None
+    except TimeoutError:
+        last_error = "timeout"
+        return None
     except Exception:
+        last_error = "request-failed"
         return None

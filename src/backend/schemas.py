@@ -29,6 +29,7 @@ class ScanResult(BaseModel):
     created_at: Any = None
     ocr_confidence: float = 0.0
     ocr_preview: str = ""  # first ~280 chars of what OCR/vision read
+    stage_timings: dict = Field(default_factory=dict)  # incl. vision/vision_error
 
 
 class HistoryItem(BaseModel):

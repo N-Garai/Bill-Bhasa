@@ -47,11 +47,15 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
 
             t0 = time.perf_counter()
             vis = None
-            if (len(ocr_text.strip()) < config.VISION_MIN_CHARS
-                    and vision_stage.available()):
-                # On-box eyes failed — borrow Gemma's (photo only, free API).
-                vis = await asyncio.to_thread(
-                    vision_stage.explain_image, small_jpg, lang)
+            if len(ocr_text.strip()) < config.VISION_MIN_CHARS:
+                if vision_stage.available():
+                    # On-box eyes failed — borrow Gemma's (photo only, free API).
+                    vis = await asyncio.to_thread(
+                        vision_stage.explain_image, small_jpg, lang)
+                    if vis is None:
+                        timings["vision_error"] = vision_stage.last_error or "failed"
+                else:
+                    timings["vision"] = "no-key"
             if vis is not None:
                 explanation, transcript = vis
                 if transcript:

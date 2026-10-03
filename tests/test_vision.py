@@ -10,6 +10,7 @@ from src.backend.pipeline.llm import _guard_numbers  # noqa: E402
 def test_vision_off_without_key():
     assert vision.available() is False
     assert vision.explain_image(b"not-an-image") is None
+    assert vision.last_error == "no-key"
 
 
 def test_two_pass_ocr_never_crashes():
