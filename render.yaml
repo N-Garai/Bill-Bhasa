@@ -18,7 +18,7 @@ services:
       - key: DEFAULT_LANG
         value: hi
       - key: MAX_UPLOAD_MB
-        value: 6
+        value: 5
       - key: WEB_CONCURRENCY
         value: 1
       # Optional (all free, no card needed):

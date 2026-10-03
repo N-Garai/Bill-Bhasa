@@ -21,6 +21,7 @@ from .db import SessionLocal, init_db
 from .models import Document
 from .pipeline import runner
 from .pipeline import tts as tts_stage
+from .pipeline.preprocess import SUPPORTED_FORMATS, probe_image
 from .schemas import HistoryItem, ScanCreated, ScanResult, ScanStatus, SpeakIn
 
 HERE = Path(__file__).resolve().parent
@@ -91,7 +92,12 @@ def _doc_to_result(doc: Document) -> ScanResult:
 # --- health / meta ---------------------------------------------------------
 @app.get("/api/health")
 def health():
-    return {"ok": True, "app": config.APP_NAME}
+    import os
+
+    # Render injects RENDER_GIT_COMMIT on every build — the UI prints it in
+    # the diagnostics line so "is the new code even live?" is always answered.
+    sha = os.environ.get("RENDER_GIT_COMMIT", "")[:7] or "dev"
+    return {"ok": True, "app": config.APP_NAME, "build": sha}
 
 
 @app.get("/api/ready")
@@ -129,19 +135,44 @@ def family_pin(payload: dict, db=Depends(_db)):
 
 
 # --- scan flow -------------------------------------------------------------
+def _up_msg(lang: str, key: str) -> str:
+    lang = (lang or "hi")[:2]
+    mb = f"{config.MAX_UPLOAD_MB:g}"
+    table = {
+        "too_big": {
+            "hi": f"Photo bahut badi hai ({mb}MB se kam bhejiye).",
+            "bn": f"Chobi onek boro ({mb}MB-er kom pathan).",
+            "en": f"Photo too large (please stay under {mb}MB).",
+        },
+        "bad_type": {
+            "hi": f"Kripya photo bhejein ({SUPPORTED_FORMATS}).",
+            "bn": f"Doya kore chobi pathan ({SUPPORTED_FORMATS}).",
+            "en": f"Please send a photo ({SUPPORTED_FORMATS}).",
+        },
+        "unreadable": {
+            "hi": "Ye photo file khul nahi rahi — dusri photo bhejein.",
+            "bn": "Ei chobi file khulche na — onno chobi pathan.",
+            "en": "This photo file won't open — please send another.",
+        },
+    }
+    return table[key].get(lang, table[key]["hi"])
+
+
 @app.post("/api/scan", response_model=ScanCreated)
 async def create_scan(background: BackgroundTasks,
                       image: UploadFile = File(...),
                       lang: str = Form(default="hi"),
                       family: str = Form(default="default")):
+    lang = (lang or "hi")[:8]
     data = await image.read()
-    limit = int(config.MAX_UPLOAD_MB * 1024 * 1024)
-    if len(data) > limit:
-        raise HTTPException(status_code=413, detail="Photo bahut badi hai (6MB tak).")
+    if len(data) > int(config.MAX_UPLOAD_MB * 1024 * 1024):
+        raise HTTPException(status_code=413, detail=_up_msg(lang, "too_big"))
     if not (image.content_type or "").startswith(("image/",)):
         # Allow octet-stream from some phones, but reject obvious non-images.
         if image.content_type not in (None, "", "application/octet-stream"):
-            raise HTTPException(status_code=415, detail="Kripya photo (JPG/PNG) bhejein.")
+            raise HTTPException(status_code=415, detail=_up_msg(lang, "bad_type"))
+    if probe_image(data) is not None:
+        raise HTTPException(status_code=400, detail=_up_msg(lang, "unreadable"))
     doc_id = str(uuid.uuid4())
     code = family_mod.normalize(family)
     s = SessionLocal()

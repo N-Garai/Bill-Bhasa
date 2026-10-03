@@ -59,6 +59,20 @@ def test_english_explains_in_english():
     assert any("Total amount" in p for p in out["key_points_hi"])
 
 
+def test_unit_price_receipt_is_not_electricity():
+    text = ("Saffron Design RECEIPT\nQTY DESCRIPTION UNIT PRICE AMOUNT\n"
+            "1 Frontend design 9,999.00 9,999.00\nTOTAL Rs.13,715.52")
+    out, _ = llm.explain(text, lang="en")
+    assert out["doc_type"] == "receipt"
+    assert out["amount"] == 13715.52
+
+
+def test_units_consumed_stays_electricity():
+    text = "CITY ELECTRICITY BOARD\nUnits consumed: 210 kWh\nTotal Rs. 540"
+    out, _ = llm.explain(text, lang="en")
+    assert out["doc_type"] == "electricity_bill"
+
+
 def test_extract_json_salvages_fences_and_chatter():
     blob = ('FIGURES: TOTAL 13715.52\nSure! ```json\n{"doc_type": "receipt", '
             '"amount": 13715.52}\n```\nHope that helps.')

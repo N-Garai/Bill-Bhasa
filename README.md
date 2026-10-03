@@ -90,7 +90,7 @@ py -m uvicorn src.backend.main:app --port 8000 --reload   # dev loop
 | `TESS_LANG` | `eng+hin` | OCR languages; `+ben` auto-added when Bangla is selected (needs `ben.traineddata`, baked into Docker) |
 | `PIPER_VOICE` | `/models/hi_IN-pratham-medium.onnx` | Server Hindi voice; browsers fall back to their own Hindi/Bangla voice |
 | `FAMILY_PIN` | *(empty)* | **Master key** for the site owner: unlocks every family space. Each visitor sets **their own PIN** inside the app (Parivar → private space card); this env var is only your override |
-| `MAX_UPLOAD_MB` | `6` | Upload cap (free-tier RAM discipline) |
+| `MAX_UPLOAD_MB` | `5` | Upload cap (free-tier RAM discipline) |
 | `DEFAULT_LANG` | `hi` | `hi`, `bn` or `en` |
 
 ---

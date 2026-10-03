@@ -56,7 +56,7 @@ OCR_MAX_PX = int(_get("OCR_MAX_PX", "800") or 800)
 
 # --- App guardrails ------------------------------------------------------
 FAMILY_PIN = _get("FAMILY_PIN", "")
-MAX_UPLOAD_MB = float(_get("MAX_UPLOAD_MB", "6") or 6)
+MAX_UPLOAD_MB = float(_get("MAX_UPLOAD_MB", "5") or 5)
 MAX_IMAGE_PX = int(_get("MAX_IMAGE_PX", "1280") or 1280)
 WEB_CONCURRENCY = int(_get("WEB_CONCURRENCY", "1") or 1)
 

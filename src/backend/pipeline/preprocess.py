@@ -64,3 +64,20 @@ def to_png_bytes(img: Image.Image) -> bytes:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
+
+
+# Raster formats a phone gallery can hand us. (SVG is vector — no pixels to
+# read — so it gets a clear rejection instead of a cryptic crash.)
+SUPPORTED_FORMATS = "PNG, JPG, WEBP, BMP, GIF, TIFF, HEIC"
+
+
+def probe_image(data: bytes) -> str | None:
+    """None if PIL can read these bytes, else 'unreadable'."""
+    if not data:
+        return "unreadable"
+    try:
+        with Image.open(io.BytesIO(data)) as im:
+            im.verify()
+    except Exception:
+        return "unreadable"
+    return None

@@ -80,6 +80,41 @@ def test_image_upload_path_with_filename():
         assert res["doc_type"] == "unknown"  # blank image, honest retry
 
 
+def test_upload_validation_formats_and_build_tag():
+    import io
+
+    from PIL import Image
+
+    with _client() as c:
+        h = c.get("/api/health").json()
+        assert h["ok"] is True and "build" in h
+
+        r = c.post("/api/scan", files={"image": ("x.png", b"not an image", "image/png")},
+                   data={"lang": "en"})
+        assert r.status_code == 400, r.text
+
+        r = c.post("/api/scan", files={"image": ("x.txt", b"hello", "text/plain")},
+                   data={"lang": "en"})
+        assert r.status_code == 415, r.text
+
+        big = b"\xff" * (6 * 1024 * 1024)
+        r = c.post("/api/scan", files={"image": ("big.jpg", big, "image/jpeg")},
+                   data={"lang": "en"})
+        assert r.status_code == 413, r.text
+
+        for fmt, ctype in [("PNG", "image/png"), ("JPEG", "image/jpeg"),
+                           ("BMP", "image/bmp"), ("GIF", "image/gif"),
+                           ("TIFF", "image/tiff"), ("WEBP", "image/webp")]:
+            img = Image.new("RGB", (200, 100), "white")
+            buf = io.BytesIO()
+            img.save(buf, format=fmt)
+            buf.seek(0)
+            r = c.post("/api/scan",
+                       files={"image": (f"p.{fmt.lower()}", buf, ctype)},
+                       data={"lang": "en"})
+            assert r.status_code == 200, (fmt, r.text)
+
+
 def test_family_spaces_are_isolated():
     with _client() as c:
         code_a = c.post("/api/family/ensure", json={}).json()["code"]

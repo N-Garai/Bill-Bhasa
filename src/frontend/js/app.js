@@ -207,6 +207,7 @@ let currentId = null;
 let pollTimer = null;
 
 /* ---------- cold-start splash ---------- */
+let serverBuild = "";
 async function warmup() {
   const splash = $("wake-splash");
   const ctrl = new AbortController();
@@ -216,6 +217,7 @@ async function warmup() {
       fetch("/api/ready", { signal: ctrl.signal }).then((r) => r.json()),
       new Promise((_, rej) => setTimeout(() => rej(new Error("t")), 9000)),
     ]);
+    api.health().then((h) => { serverBuild = h.build || ""; }).catch(() => {});
   } catch { /* splash already showing; app still works */ }
   finally {
     clearTimeout(to);
@@ -458,7 +460,8 @@ async function showResult(id) {
     $("ocr-prev").textContent =
       (r.ocr_preview || "—") + (r.ocr_confidence ? `  •  ${Math.round(r.ocr_confidence)}%` : "");
     $("stage-line").textContent = t().stageHead + ": " +
-      Object.entries(r.stage_timings || {}).map(([k, v]) => `${k}=${v}`).join(" • ");
+      Object.entries(r.stage_timings || {}).map(([k, v]) => `${k}=${v}`).join(" • ") +
+      (serverBuild ? ` • srv=${serverBuild}` : "");
 
     // Voice: server audio first, phone voice as warm backup.
     const audio = $("audio");

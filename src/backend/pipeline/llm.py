@@ -32,14 +32,25 @@ DATE_RES = [
 DUE_RES = [re.compile(r"(?:due|last date|अंतिम तिथि|due date)[^\d]{0,20}(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})", re.IGNORECASE)]
 
 TYPE_RULES: list[tuple[str, tuple[str, ...]]] = [
-    ("electricity_bill", ("electricity", "bijli", "बिजली", "বিদ্যুৎ", "বিজলি", "power", "kwh", "unit", "tariff", "discom", "meter", "বিল")),
-    ("water_bill", ("water", "पानी", "জল", "পানি", "jal board", "kl ")),
+    ("electricity_bill", ("electricity", "bijli", "बिजली", "বিদ্যুৎ", "বিজলি", "power", "kwh", "units", "per unit", "tariff", "discom", "meter", "বিল")),
+    ("water_bill", ("water", "पानी", "জল", "পানি", "jal board", "kl")),
     ("gas_bill", ("gas", "गैस", "গ্যাস", "lpg", "cylinder")),
-    ("phone_bill", ("mobile", "recharge", "jio", "airtel", "vi ", "broadband", "মোবাইল", "রিচার্জ")),
-    ("medical_prescription", ("rx", "doctor", "dr.", "diagnosis", "mg ", "tablet", "dosage", "दवा", "ডাক্তার", "দাক্তার", "ওষুধ", "दिन में", "ব্যবস্থাপত্র", "prescription", "প্রেসক্রিপশন")),
+    ("phone_bill", ("mobile", "recharge", "jio", "airtel", "vi", "broadband", "মোবাইল", "রিচার্জ")),
+    ("medical_prescription", ("rx", "doctor", "dr.", "diagnosis", "mg", "tablet", "dosage", "दवा", "ডাক্তার", "দাক্তার", "ওষুধ", "दिन में", "ব্যবস্থাপত্র", "prescription", "প্রেসক্রিপশন")),
     ("medicine_strip", ("strip", "capsule", "expiry", "batch", "mfg", "पत्ती", "পাতা", "স্ট্রিপ")),
-    ("receipt", ("receipt", "cash", "total", "invoice", "bill no", "रसीद", "রসিদ", "রশিদ", "gst")),
+    ("receipt", ("receipt", "cash", "total", "invoice", "bill no", "bill", "रसीद", "রসিদ", "রশিদ", "gst")),
 ]
+
+
+def _hit(low: str, key: str) -> bool:
+    """Whole-word match for Latin keys (so 'unit price' isn't electricity),
+    substring match for Indic scripts (no word boundaries there)."""
+    k = key.strip()
+    if k and re.fullmatch(r"[a-z0-9 .#/\-]+", k):
+        if re.fullmatch(r"[a-z]+", k):
+            return re.search(r"\b" + re.escape(k) + r"s?\b", low) is not None
+        return re.search(r"\b" + re.escape(k) + r"\b", low) is not None
+    return k in low
 
 
 def explain(ocr_text: str, history_hint: str = "", lang: str = "hi") -> tuple[dict, str]:
@@ -302,7 +313,7 @@ def heuristic_explain(ocr_text: str, lang: str = "hi") -> dict:
     low = text.lower()
     doc_type = "unknown"
     for dtype, keys in TYPE_RULES:
-        if any(k in low for k in keys):
+        if any(_hit(low, k) for k in keys):
             doc_type = dtype
             break
     amount = _find_amount(text)
