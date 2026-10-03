@@ -51,7 +51,8 @@ GEMMA_VISION_MODEL = _get("GEMMA_VISION_MODEL", "gemma-4-26b-a4b-it")
 VISION_MIN_CHARS = int(_get("VISION_MIN_CHARS", "30") or 30)
 # OCR input is shrunk to this (storage keeps full 1280px) — Tesseract time
 # grows superlinearly, so this is the single biggest speedup on 0.1 CPU.
-OCR_MAX_PX = int(_get("OCR_MAX_PX", "1000") or 1000)
+# 800px still reads printed bills cleanly; larger only risks the 60s kill.
+OCR_MAX_PX = int(_get("OCR_MAX_PX", "800") or 800)
 
 # --- App guardrails ------------------------------------------------------
 FAMILY_PIN = _get("FAMILY_PIN", "")

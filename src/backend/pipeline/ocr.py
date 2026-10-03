@@ -37,23 +37,30 @@ def run_ocr(prepared: Image.Image, retry_gray: Image.Image | None = None,
         tess_lang = "eng"  # one language = faster + sharper on a 0.1-CPU box
     elif short == "bn" and "ben" not in tess_lang:
         tess_lang = tess_lang + "+ben"  # needs ben.traineddata (see Dockerfile)
-    first = _tess(prepared, tess_lang)
+    first, slow = _tess(prepared, tess_lang)
+    if slow:
+        # Box too slow for Tesseract — further passes would time out too.
+        # Return what we have; the vision fallback takes it from here.
+        return first
     if retry_gray is not None and len(first[0].strip()) < 25:
-        second = _tess(retry_gray, tess_lang)
+        second, slow = _tess(retry_gray, tess_lang)
         if len(second[0].strip()) > len(first[0].strip()):
             first = second
+        if slow:
+            return first
     if retry_gray is not None and len(first[0].strip()) < 10:
         # Last resort: fully automatic segmentation for sparse layouts
         # (big white areas, scattered tables) where psm 6 finds nothing.
-        third = _tess(retry_gray, tess_lang, psm="4")
+        third, _ = _tess(retry_gray, tess_lang, psm="4")
         if len(third[0].strip()) > len(first[0].strip()):
             first = third
     return first
 
 
-def _tess(img: Image.Image, tess_lang: str, psm: str = "6") -> tuple[str, float]:
+def _tess(img: Image.Image, tess_lang: str, psm: str = "6") -> tuple[str, float, bool]:
+    """Returns (text, confidence, timed_out)."""
     try:
-        # Tesseract time grows superlinearly with pixels; 1000px reads
+        # Tesseract time grows superlinearly with pixels; 800px reads
         # printed bills just as well at a fraction of the weak-CPU cost.
         img = _shrink(img, config.OCR_MAX_PX)
         with tempfile.TemporaryDirectory() as tmp:
@@ -63,16 +70,20 @@ def _tess(img: Image.Image, tess_lang: str, psm: str = "6") -> tuple[str, float]
             cmd = [config.TESS_CMD, str(img_path), out_base,
                    "-l", tess_lang, "--psm", psm, "-c",
                    "tessedit_create_tsv=1"]
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            try:
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            except subprocess.TimeoutExpired:
+                return "", 0.0, True
             txt_path = Path(out_base + ".txt")
             text = txt_path.read_text(encoding="utf-8", errors="ignore") if txt_path.exists() else ""
             conf = _mean_conf(Path(out_base + ".tsv"))
             if proc.returncode != 0 and not text.strip():
-                return "", 0.0
-            return text.strip(), conf
+                return "", 0.0, False
+            return text.strip(), conf, False
     except Exception:
         # Optional pure-python wrapper as a second chance.
-        return _via_pytesseract(img)
+        text, conf = _via_pytesseract(img)
+        return text, conf, False
 
 
 def _shrink(img: Image.Image, max_px: int) -> Image.Image:
