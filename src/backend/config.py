@@ -41,7 +41,13 @@ TESS_CMD = _get("TESSERACT_CMD", "tesseract")
 # --- Voice ---------------------------------------------------------------
 PIPER_BIN = _get("PIPER_BIN", "piper")
 PIPER_VOICE = _get("PIPER_VOICE", "/models/hi_IN-pratham-medium.onnx")
+PIPER_VOICE_BN = _get("PIPER_VOICE_BN", "/models/bn_BD-google-medium.onnx")
 DEFAULT_LANG = _get("DEFAULT_LANG", "hi")
+
+# --- Vision fallback (Gemma 3 multimodal via Google AI Studio free tier) ---
+GEMMA_API_KEY = _get("GEMMA_API_KEY", "")
+GEMMA_VISION_MODEL = _get("GEMMA_VISION_MODEL", "gemma-3-4b-it")
+VISION_MIN_CHARS = int(_get("VISION_MIN_CHARS", "30") or 30)
 
 # --- App guardrails ------------------------------------------------------
 FAMILY_PIN = _get("FAMILY_PIN", "")

@@ -10,8 +10,12 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageOps
 
 
-def load_and_prepare(raw: bytes, max_px: int = 1600) -> tuple[Image.Image, bytes]:
-    """Return (prepared PIL image, downscaled JPEG bytes for storage)."""
+def load_and_prepare(raw: bytes, max_px: int = 1600) -> tuple[Image.Image, Image.Image, bytes]:
+    """Return (binarized image, contrast grayscale retry image, downscaled JPEG).
+
+    Heavy binarization helps grimy photos but can erase light print on clean
+    receipts — the grayscale version is the second chance for OCR.
+    """
     img = Image.open(io.BytesIO(raw))
     img = ImageOps.exif_transpose(img).convert("RGB")
     w, h = img.size
@@ -36,7 +40,7 @@ def load_and_prepare(raw: bytes, max_px: int = 1600) -> tuple[Image.Image, bytes
 
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=72, optimize=True)
-    return prepared, buf.getvalue()
+    return prepared, gray, buf.getvalue()
 
 
 def to_png_bytes(img: Image.Image) -> bytes:

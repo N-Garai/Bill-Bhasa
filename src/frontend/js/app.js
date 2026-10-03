@@ -37,6 +37,7 @@ const STRINGS = {
     ph: "Yahaan likhiye… jaise: bijli bill 540 rupaye", send: "✉️ Bhejiye",
     kicker: "Aapke liye samjhaya", play: "▶ Suniye", pause: "⏸ Rukiye",
     slow: "🐢 Dheere", normal: "⚡ Normal",
+    detSum: "Photo se kya padha gaya (details)",
     listening: "🔊 Sun rahe hain…", replay: "▶ Dobara suniye",
     again: "🔄 Naya photo", del: "🗑️ Ye hata dijiye",
     famH: "Parivar ki diary 📒", famSub: "Pichhle kagaz, kharcha aur zaroori nishaan — sab ek jagah.",
@@ -85,6 +86,7 @@ const STRINGS = {
     ph: "Ekhane likhun… jemon: bijli bill 540 taka", send: "✉️ Pathan",
     kicker: "Apnar jonno bujhiye dilam", play: "▶ Shunun", pause: "⏸ Thaman",
     slow: "🐢 Aste", normal: "⚡ Sadharon",
+    detSum: "Chobi theke ki pora holo (details)",
     listening: "🔊 Shunchen…", replay: "▶ Abar shunun",
     again: "🔄 Notun chobi", del: "🗑️ Eta muche din",
     famH: "Poribarer diary 📒", famSub: "Ager kagaj, khoroch ar joruri nishan — sob ek jaygay.",
@@ -133,6 +135,7 @@ const STRINGS = {
     ph: "Write here… e.g.: electricity bill 540 rupees", send: "✉️ Send",
     kicker: "Explained for you", play: "▶ Listen", pause: "⏸ Pause",
     slow: "🐢 Slow", normal: "⚡ Normal",
+    detSum: "What the photo gave us (details)",
     listening: "🔊 Listening…", replay: "▶ Listen again",
     again: "🔄 New photo", del: "🗑️ Delete this",
     famH: "Family diary 📒", famSub: "Past papers, spending and important flags — all in one place.",
@@ -386,6 +389,9 @@ async function showResult(id) {
     const disc = r.explanation.disclaimer_hi;
     $("res-disc").classList.toggle("hidden", !disc);
     if (disc) $("res-disc").textContent = "🩺 " + disc;
+    $("det-sum").textContent = t().detSum;
+    $("ocr-prev").textContent =
+      (r.ocr_preview || "—") + (r.ocr_confidence ? `  •  ${Math.round(r.ocr_confidence)}%` : "");
 
     // Voice: server audio first, phone voice as warm backup.
     const audio = $("audio");
@@ -400,7 +406,8 @@ async function showResult(id) {
       spd.classList.toggle("on", slowMode);
       try { audio.playbackRate = slowMode ? 0.75 : 1; } catch { /* noop */ }
     };
-    const speakText = [r.explanation.summary_hi, ...(r.explanation.key_points_hi || []).slice(0, 3), r.anomaly || ""].join(" ");
+    const speakText = r.explanation.speech_text ||
+      [r.explanation.summary_hi, ...(r.explanation.key_points_hi || []).slice(0, 3), r.anomaly || ""].join(" ");
     let serverOk = false;
     if (r.has_audio) {
       try {

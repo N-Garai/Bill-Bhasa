@@ -21,7 +21,11 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ---- optional: fully offline on-box AI (uncomment to enable) ----
+# Server Hindi voice (Piper, MIT) — real on-box speech, ~90MB, no build tools.
+COPY scripts/download_piper.sh ./scripts/
+RUN bash scripts/download_piper.sh
+
+# ---- optional: fully offline on-box LLM (uncomment to enable) ----
 # COPY requirements-ml.txt scripts/download_models.sh ./scripts/
 # RUN pip install --no-cache-dir -r requirements-ml.txt \
 #  && bash scripts/download_models.sh

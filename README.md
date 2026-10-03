@@ -85,6 +85,8 @@ py -m uvicorn src.backend.main:app --port 8000 --reload   # dev loop
 | `LLM_PROVIDER` | `auto` | `auto` → local GGUF if present → Groq if key set → built-in helper. Force `local`, `groq`, or `heuristic` |
 | `LLM_MODEL` | `/models/smollm2-360m-instruct-q4_k_m.gguf` | Any GGUF file — swap models without touching code |
 | `GROQ_API_KEY` | *(empty)* | Free Groq key → bigger open-weight answer when the on-box helper is unsure |
+| `GEMMA_API_KEY` | *(empty)* | Free Google AI Studio key → **Gemma 3 vision** reads the photo when on-box OCR comes back weak (tables, light print). Model via `GEMMA_VISION_MODEL` (default `gemma-3-4b-it`) |
+| `LLM_FALLBACK_MODEL` | `llama-3.3-70b-versatile` | Hosted open-weight model; `gemma2-9b-it` puts you in the Best Use of Gemma lane |
 | `TESS_LANG` | `eng+hin` | OCR languages; `+ben` auto-added when Bangla is selected (needs `ben.traineddata`, baked into Docker) |
 | `PIPER_VOICE` | `/models/hi_IN-pratham-medium.onnx` | Server Hindi voice; browsers fall back to their own Hindi/Bangla voice |
 | `FAMILY_PIN` | *(empty)* | **Master key** for the site owner: unlocks every family space. Each visitor sets **their own PIN** inside the app (Parivar → private space card); this env var is only your override |
@@ -167,7 +169,9 @@ ownership, so IDs can't be guessed across spaces.
 | LLM (on-box) | **SmolLM2-360M-Instruct GGUF Q4_K_M** | Apache-2.0 | Best quality-per-MB for short JSON tasks on CPU; swap via `LLM_MODEL` |
 | LLM runtime | **llama-cpp-python** | MIT | CPU GGUF inference with mmap |
 | LLM fallback | **Groq free tier → Llama-3.3-70B** (open weights) | free key | Same open-weight family, bigger; text-only, never the photo |
-| TTS (server) | **Piper** (`hi_IN` voice) | MIT | Open, CPU-fast Hindi voice |
+| Vision fallback | **Gemma 3 multimodal** via Google AI Studio free API | free key, no card | 1B+ Gemma sees layout/tables Tesseract misses; only fires when OCR is weak; transcript keeps the no-invented-numbers guardrail |
+| TTS (server) | **Piper** (`hi_IN` + `bn_BD` voices, baked into Docker) | MIT | Open, CPU-fast; per-language voice, subprocess exits after each use (RAM-safe). Speaks a **native-script twin** of the answer (display stays romanized), so pronunciation is exact |
+| TTS (fallback) | **Web Speech API** (browser) | built-in | Phone's own Hindi/Bangla/English voice — smart voice pick, spoken-form cleanup (₹→taka/rupaye), sentence chunking, slow-replay toggle |
 | TTS (fallback) | **Web Speech API** (browser) | built-in | Phone's own Hindi/Bangla voice — zero server cost |
 | Image prep | **Pillow + numpy** | HPND/BSD | No OpenCV (~30MB saved) |
 | Backend | **FastAPI + SQLAlchemy + uvicorn** | MIT | One process serves app + API |

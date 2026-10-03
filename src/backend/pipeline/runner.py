@@ -16,6 +16,7 @@ from . import anomaly as anomaly_stage
 from . import llm as llm_stage
 from . import ocr as ocr_stage
 from . import tts as tts_stage
+from . import vision as vision_stage
 from .preprocess import load_and_prepare
 
 _lock = asyncio.Lock()
@@ -29,13 +30,14 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
         try:
             _set(doc_id, session_factory, status="cleaning")
             t0 = time.perf_counter()
-            prepared, small_jpg = await asyncio.to_thread(
+            prepared, gray_retry, small_jpg = await asyncio.to_thread(
                 load_and_prepare, raw_image, config.MAX_IMAGE_PX)
             timings["cleaning"] = round(time.perf_counter() - t0, 2)
             _set(doc_id, session_factory, status="reading")
 
             t0 = time.perf_counter()
-            ocr_text, conf = await asyncio.to_thread(ocr_stage.run_ocr, prepared, lang)
+            ocr_text, conf = await asyncio.to_thread(
+                ocr_stage.run_ocr, prepared, gray_retry, lang)
             timings["reading"] = round(time.perf_counter() - t0, 2)
             _save(doc_id, session_factory, image_bytes=small_jpg,
                   ocr_text=ocr_text, ocr_confidence=conf, status="thinking")
@@ -44,9 +46,22 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
             hint = anomaly_stage.build_history_hint(past, lang)
 
             t0 = time.perf_counter()
-            explanation, _provider = await asyncio.to_thread(
-                llm_stage.explain, ocr_text, hint, lang)
-            timings["thinking"] = round(time.perf_counter() - t0, 2)
+            vis = None
+            if (len(ocr_text.strip()) < config.VISION_MIN_CHARS
+                    and vision_stage.available()):
+                # On-box eyes failed — borrow Gemma's (photo only, free API).
+                vis = await asyncio.to_thread(
+                    vision_stage.explain_image, small_jpg, lang)
+            if vis is not None:
+                explanation, transcript = vis
+                if transcript:
+                    ocr_text, conf = transcript, max(conf, 85.0)
+                timings["thinking"] = round(time.perf_counter() - t0, 2)
+                timings["vision"] = True
+            else:
+                explanation, _provider = await asyncio.to_thread(
+                    llm_stage.explain, ocr_text, hint, lang)
+                timings["thinking"] = round(time.perf_counter() - t0, 2)
 
             # Anomaly compares against same-type history once type is known.
             past_typed = _past_amounts(doc_id, session_factory, family_code, limit=6,
@@ -58,11 +73,17 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
             _set(doc_id, session_factory, status="speaking")
 
             t0 = time.perf_counter()
-            speech = (explanation.get("summary_hi", "") + " " +
-                      " ".join(explanation.get("key_points_hi", [])[:3]))
+            # Speech input: native-script twin when the helper built one,
+            # else the display text; anomaly appended in native script too.
+            speech = str(explanation.get("speech_text") or (
+                str(explanation.get("summary_hi", "")) + " " +
+                " ".join(explanation.get("key_points_hi", [])[:3]))).strip()
             if explanation.get("unusual_hi"):
-                speech += " " + str(explanation["unusual_hi"])
-            audio = await asyncio.to_thread(tts_stage.synthesize, speech)
+                flag_native = anomaly_stage.detect(
+                    past_typed or past,
+                    _as_float(explanation.get("amount")), lang, native=True)
+                speech += " " + str(flag_native or explanation["unusual_hi"])
+            audio = await asyncio.to_thread(tts_stage.synthesize, speech, lang)
             timings["speaking"] = round(time.perf_counter() - t0, 2)
 
             timings["total"] = round(time.perf_counter() - t_all, 2)

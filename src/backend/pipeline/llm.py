@@ -207,20 +207,67 @@ def _fmt_amt(amount: float) -> str:
     return f"{amount:,.0f}" if float(amount).is_integer() else f"{amount:,.2f}"
 
 
-def heuristic_explain(ocr_text: str, lang: str = "hi") -> dict:
-    lang = (lang or "hi")[:2]
-    t = _T.get(lang, _T["hi"])
-    text = ocr_text.strip()
-    low = text.lower()
-    doc_type = "unknown"
-    for dtype, keys in TYPE_RULES:
-        if any(k in low for k in keys):
-            doc_type = dtype
-            break
-    amount = _find_amount(text)
-    date = _find_date(text)
-    due = _find_due(text)
+# Native-script twin of _T — used ONLY for speech input, so voices
+# pronounce properly. Display text stays romanized (easier to read).
+_TN = {
+    "hi": {
+        "titles": {
+            "electricity_bill": ("बिजली का बिल", "यह आपके घर के बिजली बिल का कागज़ लग रहा है"),
+            "water_bill": ("पानी का बिल", "यह पानी के बिल का कागज़ लग रहा है"),
+            "gas_bill": ("गैस का बिल", "यह गैस बिल का कागज़ लग रहा है"),
+            "phone_bill": ("फ़ोन का बिल", "यह मोबाइल/फ़ोन बिल का कागज़ लग रहा है"),
+            "medical_prescription": ("डॉक्टर का पर्चा", "यह डॉक्टर के पर्चे जैसा लग रहा है"),
+            "medicine_strip": ("दवा की पत्ती", "यह दवा की पत्ती का कागज़ लग रहा है"),
+            "receipt": ("खरीद की रसीद", "यह दुकान की रसीद जैसी लग रही है"),
+            "unknown": ("कागज़", "यह किसी बिल या पर्चे जैसा कागज़ लग रहा है"),
+        },
+        "hello": "नमस्ते!",
+        "with_amount": "इस {title} में कुल रकम ₹{amount} लिखी है। ",
+        "no_amount": "इसमें रकम साफ़ नहीं दिखी, कृपया रोशनी में दोबारा फ़ोटो लीजिए। ",
+        "with_due": "आख़िरी तारीख़ {due} लिखी है। ",
+        "closer": "घबराइए मत, नीचे मुख्य बातें सुन लीजिए।",
+        "amt_pt": "कुल रकम: ₹{amount}",
+        "due_pt": "जमा करने की आख़िरी तारीख़: {due}",
+        "date_pt": "कागज़ पर तारीख़: {date}",
+        "org_pt": "ऊपर लिखा नाम/स्थान: {org}",
+        "retry_pt": "रकम या तारीख़ साफ़ नहीं दिखी — दोबारा फ़ोटो लीजिए",
+        "act_bill": "इस कागज़ को संभाल कर रखिए और समय पर भुगतान कीजिए",
+        "act_med": "दवा समय पर लीजिए",
+        "act_none": "कुछ करने की ज़रूरत नहीं",
+        "disc_med": "दवा या डोज़ बदलने से पहले डॉक्टर/फ़ार्मासिस्ट से पूछें",
+    },
+    "bn": {
+        "titles": {
+            "electricity_bill": ("বিজলি বিল", "এটা আপনার বাড়ির বিজলি বিলের কাগজ বলে মনে হচ্ছে"),
+            "water_bill": ("জলের বিল", "এটা জলের বিলের কাগজ বলে মনে হচ্ছে"),
+            "gas_bill": ("গ্যাস বিল", "এটা গ্যাস বিলের কাগজ বলে মনে হচ্ছে"),
+            "phone_bill": ("ফোন বিল", "এটা মোবাইল/ফোন বিলের কাগজ বলে মনে হচ্ছে"),
+            "medical_prescription": ("ডাক্তারের প্রেসক্রিপশন", "এটা ডাক্তারের প্রেসক্রিপশনের মতো লাগছে"),
+            "medicine_strip": ("ওষুধের পাতা", "এটা ওষুধের পাতার কাগজ বলে মনে হচ্ছে"),
+            "receipt": ("দোকানের রসিদ", "এটা দোকানের রসিদের মতো লাগছে"),
+            "unknown": ("কাগজ", "এটা কোনো বিল বা প্রেসক্রিপশনের কাগজ বলে মনে হচ্ছে"),
+        },
+        "hello": "নমস্কার!",
+        "with_amount": "এই {title}-এ মোট ₹{amount} লেখা আছে। ",
+        "no_amount": "এতে টাকা স্পষ্ট দেখা যাচ্ছে না, দয়া করে আলোতে আবার ছবি তুলুন। ",
+        "with_due": "শেষ তারিখ {due} লেখা আছে। ",
+        "closer": "ভাববেন না, নিচে মূল কথাগুলো শুনে নিন।",
+        "amt_pt": "মোট টাকা: ₹{amount}",
+        "due_pt": "জমা দেওয়ার শেষ তারিখ: {due}",
+        "date_pt": "কাগজে তারিখ: {date}",
+        "org_pt": "উপরে লেখা নাম/স্থান: {org}",
+        "retry_pt": "টাকা বা তারিখ স্পষ্ট দেখা যাচ্ছে না — আবার ছবি তুলুন",
+        "act_bill": "কাগজটা যত্ন করে রাখুন এবং সময় মতো পরিশোধ করুন",
+        "act_med": "ওষুধ সময় মতো খান",
+        "act_none": "কিছু করার দরকার নেই",
+        "disc_med": "ওষুধ বা ডোজ বদলানোর আগে ডাক্তার/ফার্মাসিস্টকে জিজ্ঞাসা করুন",
+    },
+}
 
+
+def _render(t: dict, doc_type: str, amount, date, due, org: str
+            ) -> tuple[str, list[str], str, str]:
+    """Render (summary, points, action, disclaimer) from one template table."""
     title, opener = t["titles"].get(doc_type, t["titles"]["unknown"])
     if amount is not None:
         summary = f"{t['hello']} {opener}. " + t["with_amount"].format(title=title, amount=_fmt_amt(amount))
@@ -237,7 +284,6 @@ def heuristic_explain(ocr_text: str, lang: str = "hi") -> dict:
         points.append(t["due_pt"].format(due=due))
     elif date:
         points.append(t["date_pt"].format(date=date))
-    org = _find_org(text)
     if org:
         points.append(t["org_pt"].format(org=org))
     if not points:
@@ -246,16 +292,41 @@ def heuristic_explain(ocr_text: str, lang: str = "hi") -> dict:
     medical = doc_type in ("medical_prescription", "medicine_strip")
     action = (t["act_bill"] if doc_type.endswith("bill") or doc_type == "receipt"
               else (t["act_med"] if medical else t["act_none"]))
+    return summary.strip(), points[:4], action, (t["disc_med"] if medical else "")
+
+
+def heuristic_explain(ocr_text: str, lang: str = "hi") -> dict:
+    lang = (lang or "hi")[:2]
+    t = _T.get(lang, _T["hi"])
+    text = ocr_text.strip()
+    low = text.lower()
+    doc_type = "unknown"
+    for dtype, keys in TYPE_RULES:
+        if any(k in low for k in keys):
+            doc_type = dtype
+            break
+    amount = _find_amount(text)
+    date = _find_date(text)
+    due = _find_due(text)
+
+    org = _find_org(text)
+    summary, points, action, disc = _render(t, doc_type, amount, date, due, org)
+    # Native-script twin for voices: display stays romanized, speech is pure.
+    tn = _TN.get(lang, t)
+    sp_summary, sp_points, _, _ = _render(tn, doc_type, amount, date, due, org)
+    speech_text = (sp_summary + " " + " ".join(sp_points[:3])).strip()
+
     out = {
         "doc_type": doc_type,
-        "summary_hi": summary.strip(),
-        "key_points_hi": points[:4],
+        "summary_hi": summary,
+        "key_points_hi": points,
         "unusual_hi": None,
         "action_hi": action,
-        "disclaimer_hi": (t["disc_med"] if medical else ""),
+        "disclaimer_hi": disc,
         "amount": amount,
         "currency": "INR",
         "date": _iso(date),
+        "speech_text": speech_text,
     }
     return _guard_numbers(out, text)
 

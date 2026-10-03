@@ -1,12 +1,14 @@
-"""Voice stage — server-side Hindi speech when available.
+"""Voice stage — server-side speech in the user's own language.
 
-Tries the on-disk Piper voice via subprocess (memory is released when the
-process exits). If Piper/ffmpeg is missing we return None and the browser
-speaks the text itself with its built-in Hindi voice — so Amma always
-hears something, even on the smallest free-tier box.
+Tries the on-disk Piper voice for the request language via subprocess
+(memory is released when the process exits). A Hindi request with no Hindi
+voice (or Bengali with no Bengali voice) returns None rather than speaking
+the wrong language — the browser then speaks with its own voice, so there
+is always sound, even on the smallest free-tier box.
 """
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import tempfile
@@ -14,20 +16,45 @@ from pathlib import Path
 
 from .. import config
 
-
-def available() -> bool:
-    return shutil.which(config.PIPER_BIN) is not None and Path(config.PIPER_VOICE).exists()
+MONEY_WORD = {"hi": " रुपये ", "bn": " টাকা ", "en": " rupees "}
 
 
-def synthesize(text: str) -> bytes | None:
+def voice_for(lang: str = "hi") -> str | None:
+    """Baked voice file for this language, or None (use browser voice)."""
+    short = (lang or "hi")[:2]
+    if short == "bn":
+        p = Path(config.PIPER_VOICE_BN)
+    elif short == "hi":
+        p = Path(config.PIPER_VOICE)
+    else:
+        return None  # phone English voices are good; skip server synth
+    return str(p) if p.exists() else None
+
+
+def available(lang: str = "hi") -> bool:
+    return shutil.which(config.PIPER_BIN) is not None and voice_for(lang) is not None
+
+
+def for_speech(text: str, lang: str = "hi") -> str:
+    """Make text voice-safe: spoken money words, plain digit groups."""
+    short = (lang or "hi")[:2]
+    s = str(text or "")
+    s = s.replace("₹", MONEY_WORD.get(short, MONEY_WORD["hi"]))
+    if short in ("hi", "bn"):
+        s = re.sub(r"(?<=\d),(?=\d)", "", s)  # 13,715 -> 13715 reads cleanly
+    return re.sub(r"\s+", " ", s).strip()[:1200]
+
+
+def synthesize(text: str, lang: str = "hi") -> bytes | None:
     """Return OGG bytes or None. Never raises."""
-    text = (text or "").strip()[:1200]
-    if not text or not available():
+    text = for_speech(text, lang)
+    voice = voice_for(lang)
+    if not text or not voice or shutil.which(config.PIPER_BIN) is None:
         return None
     try:
         with tempfile.TemporaryDirectory() as tmp:
             wav = Path(tmp) / "out.wav"
-            cmd = [config.PIPER_BIN, "--model", config.PIPER_VOICE,
+            cmd = [config.PIPER_BIN, "--model", voice,
                    "--output_file", str(wav)]
             proc = subprocess.run(cmd, input=text.encode("utf-8"),
                                   capture_output=True, timeout=60)

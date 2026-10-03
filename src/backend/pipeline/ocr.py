@@ -21,8 +21,14 @@ def tesseract_available() -> bool:
     return shutil.which(config.TESS_CMD) is not None
 
 
-def run_ocr(prepared: Image.Image, lang: str = "hi") -> tuple[str, float]:
-    """Return (text, mean-confidence 0..100)."""
+def run_ocr(prepared: Image.Image, retry_gray: Image.Image | None = None,
+            lang: str = "hi") -> tuple[str, float]:
+    """Return (text, mean-confidence 0..100).
+
+    Two passes: binarized first (best for grimy photos), then the softer
+    grayscale version (best for clean receipts with light print) if the
+    first pass finds almost nothing. Keeps the longer, more confident read.
+    """
     if not tesseract_available():
         return "", 0.0
     tess_lang = config.TESS_LANG
@@ -31,10 +37,19 @@ def run_ocr(prepared: Image.Image, lang: str = "hi") -> tuple[str, float]:
         tess_lang = "eng"  # one language = faster + sharper on a 0.1-CPU box
     elif short == "bn" and "ben" not in tess_lang:
         tess_lang = tess_lang + "+ben"  # needs ben.traineddata (see Dockerfile)
+    first = _tess(prepared, tess_lang)
+    if retry_gray is not None and len(first[0].strip()) < 25:
+        second = _tess(retry_gray, tess_lang)
+        if len(second[0].strip()) > len(first[0].strip()):
+            return second
+    return first
+
+
+def _tess(img: Image.Image, tess_lang: str) -> tuple[str, float]:
     try:
         with tempfile.TemporaryDirectory() as tmp:
             img_path = Path(tmp) / "page.png"
-            img_path.write_bytes(to_png_bytes(prepared))
+            img_path.write_bytes(to_png_bytes(img))
             out_base = str(Path(tmp) / "out")
             cmd = [config.TESS_CMD, str(img_path), out_base,
                    "-l", tess_lang, "--psm", "6", "-c",
@@ -48,7 +63,7 @@ def run_ocr(prepared: Image.Image, lang: str = "hi") -> tuple[str, float]:
             return text.strip(), conf
     except Exception:
         # Optional pure-python wrapper as a second chance.
-        return _via_pytesseract(prepared)
+        return _via_pytesseract(img)
 
 
 def _mean_conf(tsv: Path) -> float:

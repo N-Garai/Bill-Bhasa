@@ -71,6 +71,7 @@ def _need_pin(code: str = Depends(_family_code),
 def _doc_to_result(doc: Document) -> ScanResult:
     exp = doc.explanation or {}
     summary = str(exp.get("summary_hi", "")) if isinstance(exp, dict) else ""
+    ocr = doc.ocr_text or ""
     return ScanResult(
         id=doc.id,
         doc_type=doc.doc_type or "unknown",
@@ -81,6 +82,8 @@ def _doc_to_result(doc: Document) -> ScanResult:
         language=doc.language or "hi",
         has_audio=bool(doc.audio_ogg),
         created_at=doc.created_at.isoformat() if doc.created_at else None,
+        ocr_confidence=doc.ocr_confidence or 0.0,
+        ocr_preview=ocr[:280],
     )
 
 
@@ -189,10 +192,13 @@ async def create_scan_text(background: BackgroundTasks, payload: dict,
         flag = anomaly_stage.detect(past, llm_stage._find_amount(text), lang)
         if flag:
             explanation["unusual_hi"] = flag
+        speech_in = str(explanation.get("speech_text") or explanation.get("summary_hi", ""))
+        if flag:
+            flag_native = anomaly_stage.detect(
+                past, llm_stage._find_amount(text), lang, native=True)
+            speech_in += " " + str(flag_native or flag)
         audio = await __import__("asyncio").to_thread(
-            tts_stage.synthesize,
-            explanation.get("summary_hi", "") + " " +
-            " ".join(explanation.get("key_points_hi", [])[:3]))
+            tts_stage.synthesize, speech_in, lang)
         ss = SessionLocal()
         try:
             doc = ss.get(Document, doc_id)
@@ -292,7 +298,8 @@ def trends(db=Depends(_db), code: str = Depends(_need_pin)):
 
 @app.post("/api/speak")
 async def speak(payload: SpeakIn):
-    audio = await __import__("asyncio").to_thread(tts_stage.synthesize, payload.text)
+    audio = await __import__("asyncio").to_thread(
+        tts_stage.synthesize, payload.text, payload.lang or "hi")
     if not audio:
         # Browser will speak it instead — tell the app politely.
         return JSONResponse({"fallback": "browser", "message": "Browser awaaz mein suniye"}, status_code=200)

@@ -32,3 +32,4 @@ Render Postgres 30-day trap → Neon.
 
 ## Prize Categories
 Best Use of Render (one free web service hosts app + AI runtime).
+Best Use of Gemma (Gemma 3 vision fallback via free API + `gemma2-9b-it` hosted option; swap demo via `GEMMA_VISION_MODEL` / `LLM_FALLBACK_MODEL`).

@@ -139,6 +139,9 @@ main,header.topbar,footer.foot{position:relative; z-index:1}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .res-action{font-size:1.1rem} .res-disc{color:var(--mut); font-size:.95rem}
 .res-disc.hidden{display:none}
+.res-det{margin:8px 0; background:#14110b; border:1px solid #3a3122; border-radius:12px; padding:10px 14px}
+.res-det summary{cursor:pointer; color:var(--mut); font-weight:700}
+.res-det p{white-space:pre-wrap; font-size:.9rem; max-height:160px; overflow:auto}
 .player{display:flex; align-items:center; gap:12px; background:#14110b; border:1px solid #3a3122;
   border-radius:16px; padding:12px 14px; margin:12px 0}
 .play-btn{cursor:pointer; border:0; border-radius:99px; padding:14px 26px; font-size:1.15rem; font-weight:800;

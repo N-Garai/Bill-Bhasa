@@ -27,6 +27,8 @@ class ScanResult(BaseModel):
     language: str = "hi"
     has_audio: bool = False
     created_at: Any = None
+    ocr_confidence: float = 0.0
+    ocr_preview: str = ""  # first ~280 chars of what OCR/vision read
 
 
 class HistoryItem(BaseModel):
