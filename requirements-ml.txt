@@ -1,0 +1,10 @@
+# Optional on-box AI upgrades — installed in Docker only, never required.
+# The app boots and works fully without these (helper + browser voice).
+# Uncomment in the Dockerfile to bake a fully offline pipeline.
+-r requirements.txt
+llama-cpp-python==0.3.9
+# Piper TTS is installed as a binary in the Dockerfile (see scripts/).
+# Voice files: https://huggingface.co/rhasspy/piper-voices
+#   hi_IN-pratham-medium.onnx + .onnx.json
+# Model files (Apache-2.0 open weights):
+#   https://huggingface.co/HuggingFaceTB/smollm2-360m-instruct  (GGUF Q4_K_M)

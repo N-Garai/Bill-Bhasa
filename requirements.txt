@@ -1,0 +1,15 @@
+# Light runtime — everything needed to boot and serve with the
+# built-in helper + browser voice. Installs in ~1 min, runs in ~120MB.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pillow==11.1.0
+numpy==2.2.4
+sqlalchemy==2.0.38
+# Postgres driver for Neon (free tier). SQLite is used when DATABASE_URL is unset.
+psycopg2-binary==2.9.10
+# Optional OCR wrapper (pure Python; needs the tesseract system binary).
+pytesseract==0.3.13
+# Tiny test runner
+pytest==8.3.4
+httpx==0.28.1

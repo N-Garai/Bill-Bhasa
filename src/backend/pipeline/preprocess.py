@@ -1,0 +1,45 @@
+"""Image cleanup before OCR: gray, contrast, threshold, upscale.
+
+Pillow + numpy only (no OpenCV — saves ~30MB RAM/import on free tier).
+"""
+from __future__ import annotations
+
+import io
+
+import numpy as np
+from PIL import Image, ImageEnhance, ImageOps
+
+
+def load_and_prepare(raw: bytes, max_px: int = 1600) -> tuple[Image.Image, bytes]:
+    """Return (prepared PIL image, downscaled JPEG bytes for storage)."""
+    img = Image.open(io.BytesIO(raw))
+    img = ImageOps.exif_transpose(img).convert("RGB")
+    w, h = img.size
+    scale = min(1.0, max_px / max(w, h))
+    if scale < 1.0:
+        img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+    # Grayscale + gentle contrast boost helps printed bills a lot.
+    gray = ImageOps.grayscale(img)
+    gray = ImageEnhance.Contrast(gray).enhance(1.6)
+    gray = ImageEnhance.Brightness(gray).enhance(1.05)
+
+    # Mild upscale for small phone crops (Tesseract likes ~300 DPI).
+    if max(gray.size) < 1200:
+        gray = gray.resize((gray.width * 2, gray.height * 2), Image.LANCZOS)
+
+    # Adaptive-ish threshold via numpy mean (cheap, no OpenCV).
+    arr = np.asarray(gray).astype(np.float32)
+    thresh = float(arr.mean()) * 0.95
+    bin_arr = np.where(arr > thresh, 255, 0).astype(np.uint8)
+    prepared = Image.fromarray(bin_arr)
+
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=72, optimize=True)
+    return prepared, buf.getvalue()
+
+
+def to_png_bytes(img: Image.Image) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()

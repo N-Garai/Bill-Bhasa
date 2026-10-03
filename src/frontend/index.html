@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>BillBhasha — Har kagaz, aapki bhasha mein</title>
+<meta name="description" content="Photo kheenchiye, kagaz ko apni bhasha mein suniye. Bill, parcha, raseed — sab aasaan shabdon mein." />
+<meta name="theme-color" content="#14120e" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314120e'/%3E%3Ccircle cx='32' cy='26' r='13' fill='%23ffb84d'/%3E%3Crect x='16' y='40' width='32' height='12' rx='3' fill='%23f7f1e3'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/assets/css/styles.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js" defer></script>
+</head>
+<body>
+<div class="lamp-glow" aria-hidden="true"></div>
+<div id="wake-splash" class="wake hidden" role="status">
+  <div class="wake-card">
+    <div class="wake-lamp"><span></span></div>
+    <p class="wake-line">Namaste! Main jaag raha hoon…</p>
+    <p class="wake-sub">pehli baar thoda samay lagta hai, bas ek minute</p>
+    <div class="wake-bar"><i></i></div>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-lamp" aria-hidden="true">🪔</span>
+    <div>
+      <h1>BillBhasha</h1>
+      <p class="tagline"><span id="tagline-rot">Har kagaz, aapki bhasha mein.</span></p>
+    </div>
+  </div>
+  <nav class="modes" role="tablist" aria-label="Mode">
+    <button id="tab-amma" class="mode-btn active" role="tab" aria-selected="true">🏠 Saral</button>
+    <button id="tab-family" class="mode-btn" role="tab" aria-selected="false">📚 Parivar</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============ LANDING / HERO ============ -->
+  <section id="hero" class="hero">
+    <div class="hero-3d"><canvas id="paper3d" aria-hidden="true"></canvas></div>
+    <div class="hero-copy">
+      <p class="eyebrow reveal">Photo kheenchiye • Suniye • Samjhiye</p>
+      <h2 class="hero-title">
+        <span class="line reveal" id="hero-l1">Kagaz bole,</span>
+        <span class="line warm reveal" id="hero-l2">aapki bhasha mein.</span>
+      </h2>
+      <p class="hero-sub reveal" id="hero-sub">Bijli ka bill ho ya doctor ka parcha — bas photo lijiye, aur suniye seedhe-saral shabdon mein. Bade button, saaf awaaz, koi chakkar nahi.</p>
+      <div class="hero-cta reveal">
+        <button id="cta-start" class="btn-big">📷 Chalo, photo lete hain</button>
+        <button id="cta-how" class="btn-soft">Kaise kaam karta hai?</button>
+      </div>
+      <div id="how-strip" class="how hidden">
+        <div class="how-step"><b>1</b><p>Photo lijiye ya likh kar bhejiye</p></div>
+        <div class="how-step"><b>2</b><p>Hum use padh kar samjhaate hain</p></div>
+        <div class="how-step"><b>3</b><p>Suniye, aur zaroorat ho to dobara suniye</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SARAL (AMMA) MODE ============ -->
+  <section id="view-amma" class="view active" role="tabpanel" aria-label="Saral">
+    <div class="amma-card lamp-card">
+      <div class="lang-pill" role="group" aria-label="Bhasha / Bhasha chuniye">
+        <button id="lang-hi" class="lang-btn active" aria-pressed="true">हिंदी</button>
+        <button id="lang-bn" class="lang-btn" aria-pressed="false">বাংলা</button>
+      </div>
+      <p class="amma-hi" id="amma-hi">Namaste! 🙏</p>
+      <p class="amma-sub" id="amma-sub">Koi kagaz samajhna ho to neeche dabaiye</p>
+      <button id="btn-camera" class="camera-btn" aria-label="Photo lijiye">
+        <span class="cam-ring"></span>
+        <span class="cam-ico">📷</span>
+        <span class="cam-txt">Photo Lijiye</span>
+      </button>
+      <input id="file-input" type="file" accept="image/*" capture="environment" hidden />
+      <div class="amma-or"><span>ya</span></div>
+      <button id="btn-pick" class="btn-soft">🖼️ Gallery se chuniye</button>
+      <input id="file-pick" type="file" accept="image/*" hidden />
+      <div class="amma-or"><span id="or-write">ya likh kar bhejiye</span></div>
+      <form id="text-form" class="text-form">
+        <textarea id="text-input" rows="2" placeholder="Yahaan likhiye… jaise: bijli bill 540 rupaye"></textarea>
+        <button class="btn-soft" type="submit" id="btn-send">✉️ Bhejiye</button>
+      </form>
+    </div>
+
+    <!-- processing stepper -->
+    <div id="proc" class="proc hidden">
+      <h3 id="proc-title">Padh rahe hain…</h3>
+      <ol class="steps">
+        <li data-s="cleaning"><i>🧹</i><span>Saaf kar rahe</span></li>
+        <li data-s="reading"><i>👓</i><span>Padh rahe</span></li>
+        <li data-s="thinking"><i>💡</i><span>Samajh rahe</span></li>
+        <li data-s="speaking"><i>🔊</i><span>Bole rahe</span></li>
+        <li data-s="done"><i>✅</i><span>Ho gaya</span></li>
+      </ol>
+      <div class="proc-bar"><i id="proc-fill"></i></div>
+      <p id="proc-note" class="proc-note">Rukiye, deepak jal raha hai…</p>
+    </div>
+
+    <!-- result -->
+    <article id="result" class="result lamp-card hidden">
+      <div class="res-glow" aria-hidden="true"></div>
+      <p class="res-kicker" id="res-kicker">Aapke liye samjhaya</p>
+      <h3 id="res-summary" class="res-summary"></h3>
+      <ul id="res-points" class="res-points"></ul>
+      <div id="res-flag" class="res-flag hidden"><span>⚠️</span><p id="res-flag-t"></p></div>
+      <p id="res-action" class="res-action"></p>
+      <p id="res-disc" class="res-disc hidden"></p>
+      <div class="player">
+        <button id="btn-play" class="play-btn" aria-label="Suniye">▶ Suniye</button>
+        <div class="wave" id="wave" aria-hidden="true"></div>
+        <audio id="audio" preload="none"></audio>
+      </div>
+      <div class="res-row">
+        <button id="btn-again" class="btn-soft">🔄 Naya photo</button>
+        <button id="btn-del" class="btn-danger-soft">🗑️ Ye hata dijiye</button>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ PARIVAR (FAMILY) MODE ============ -->
+  <section id="view-family" class="view" role="tabpanel" aria-label="Parivar">
+    <div class="fam-head">
+      <div>
+        <h2 id="fam-h">Parivar ki diary 📒</h2>
+        <p id="fam-sub">Pichhle kagaz, kharcha aur zaroori nishaan — sab ek jagah.</p>
+      </div>
+      <div class="pin-row">
+        <input id="pin" type="password" inputmode="numeric" placeholder="Parivar PIN (agar lagaya ho)" />
+        <button id="btn-load" class="btn-soft">Dekhiye</button>
+      </div>
+    </div>
+    <div class="trend-card lamp-card">
+      <h3 id="trend-h">Mahine ka kharcha</h3>
+      <canvas id="spark" width="600" height="120"></canvas>
+      <p id="trend-note" class="trend-note">PIN daal kar “Dekhiye” dabaiye.</p>
+    </div>
+    <div id="cards" class="cards"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>Made with care for family — aapke kagaz, aapke paas, aapki bhasha mein. 🤍</p>
+  <p class="foot-small">Aapki photo aur jaankari sirf isi parivar ke liye hai. Hataane par turant mita di jaati hai.</p>
+</footer>
+
+<div id="toast" class="toast" role="alert"></div>
+
+<script type="module" src="/assets/js/app.js"></script>
+</body>
+</html>

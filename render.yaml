@@ -1,0 +1,28 @@
+# One free web service serves the whole app (API + PWA).
+services:
+  - type: web
+    name: billbhasha
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false # paste the Neon free connection string in the dashboard
+      - key: LLM_PROVIDER
+        value: auto
+      - key: LLM_MODEL
+        value: /models/smollm2-360m-instruct-q4_k_m.gguf
+      - key: TESS_LANG
+        value: eng+hin
+      - key: DEFAULT_LANG
+        value: hi
+      - key: MAX_UPLOAD_MB
+        value: 6
+      - key: WEB_CONCURRENCY
+        value: 1
+      # Optional (all free, no card needed):
+      # - key: GROQ_API_KEY
+      #   sync: false
+      # - key: FAMILY_PIN
+      #   sync: false

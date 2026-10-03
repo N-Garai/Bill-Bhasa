@@ -1,0 +1,10 @@
+roadmap/
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/*.db
+data/*.sqlite*
+models/
+*.onnx
+*.gguf
