@@ -70,21 +70,23 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
     if not key or not voice or not text or ElevenLabs is None:
         return None
     try:
+        print("[tts] creating ElevenLabs client...")
         client = ElevenLabs(api_key=key)
+        print("[tts] calling convert...")
         audio = client.text_to_speech.convert(
             text=text,
             voice_id=voice,
             model_id=config.ELEVENLABS_MODEL,
             output_format="mp3_44100_128",
         )
-        print(f"[tts] elevenlabs raw response type: {type(audio).__name__}, "
-              f"value preview: {repr(audio)[:120]}")
+        print(f"[tts] convert returned type={type(audio).__name__}")
         if isinstance(audio, bytes):
             data = audio
         elif audio is None:
             print("[tts] elevenlabs returned None")
             return None
         else:
+            print(f"[tts] converting {type(audio).__name__} to bytes...")
             try:
                 data = bytes(audio)
             except Exception as conv_err:
