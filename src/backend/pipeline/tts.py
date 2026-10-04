@@ -65,7 +65,10 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
     short = (lang or "hi")[:2]
     voice = {"bn": config.ELEVENLABS_VOICE_BN,
              "hi": config.ELEVENLABS_VOICE_HI}.get(short)
+    print(f"[tts] _elevenlabs gate: short={short}, key={'set' if key else 'MISSING'}, "
+          f"voice={voice}, text={text[:60]!r}, sdk={'available' if ElevenLabs else 'MISSING'}")
     if not key or not voice or not text or ElevenLabs is None:
+        print("[tts] _elevenlabs short-circuit: missing key/voice/text/sdk")
         return None
     try:
         client = ElevenLabs(api_key=key)
@@ -78,11 +81,14 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
         if isinstance(audio, bytes):
             data = audio
         elif audio is None:
+            print("[tts] elevenlabs returned None")
             return None
         else:
             data = b"".join(audio)
         if not data:
+            print("[tts] elevenlabs returned empty audio")
             return None
+        print(f"[tts] elevenlabs success: {len(data)} bytes")
         return data
     except Exception as e:
         print(f"[tts] elevenlabs failed: {type(e).__name__}: {e}")
@@ -93,14 +99,17 @@ def synthesize(text: str, lang: str = "hi") -> bytes | None:
     """Return OGG bytes or None. Never raises."""
     text = for_speech(text, lang)
     short = (lang or "hi")[:2]
+    print(f"[tts] synthesize: short={short}, key={'set' if config.ELEVENLABS_API_KEY else 'MISSING'}, text={text[:60]!r}")
     # Indic languages get the nicer ElevenLabs voices first (English keeps the
     # phone's own voices, as before). Fails over to Piper, then the browser.
     if short in ("bn", "hi") and config.ELEVENLABS_API_KEY:
         eleven = _elevenlabs(text, lang)
         if eleven:
             return eleven
+        print("[tts] elevenlabs returned None, falling back to Piper/browser")
     voice = voice_for(lang)
     if not text or not voice or shutil.which(config.PIPER_BIN) is None:
+        print(f"[tts] piper skipped: text={bool(text)}, voice={voice}, piper={shutil.which(config.PIPER_BIN)}")
         return None
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -110,6 +119,7 @@ def synthesize(text: str, lang: str = "hi") -> bytes | None:
             proc = subprocess.run(cmd, input=text.encode("utf-8"),
                                   capture_output=True, timeout=60)
             if proc.returncode != 0 or not wav.exists():
+                print(f"[tts] piper failed: rc={proc.returncode}, exists={wav.exists()}")
                 return None
             if shutil.which("ffmpeg"):
                 ogg = Path(tmp) / "out.ogg"
