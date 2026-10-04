@@ -77,8 +77,11 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
             model_id=config.ELEVENLABS_MODEL,
             output_format="mp3_44100_128",
         )
-        data = bytes(audio) if audio else None
-        print(f"[tts] elevenlabs success: {len(data) if data else 0} bytes")
+        data = bytes(audio) if audio is not None else None
+        if not data:
+            print("[tts] elevenlabs returned empty audio")
+            return None
+        print(f"[tts] elevenlabs success: {len(data)} bytes, type={type(data).__name__}")
         return data
     except Exception as e:
         print(f"[tts] elevenlabs failed: {type(e).__name__}: {e}")
