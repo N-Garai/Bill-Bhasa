@@ -44,6 +44,17 @@ PIPER_VOICE = _get("PIPER_VOICE", "/models/hi_IN-pratham-medium.onnx")
 PIPER_VOICE_BN = _get("PIPER_VOICE_BN", "/models/bn_BD-google-medium.onnx")
 DEFAULT_LANG = _get("DEFAULT_LANG", "hi")
 
+# --- ElevenLabs (optional: better Bengali/Hindi server voices) -------------
+# When a key is set, bn/hi speech tries ElevenLabs first and falls back to
+# the on-box Piper voice (then the browser) on any failure. English is
+# untouched — it keeps using the phone's own voices. Free tier = rate limits.
+ELEVENLABS_API_KEY = _get("ELEVENLABS_API_KEY", "")
+# eleven_multilingual_v2 is the model that covers Hindi + Bengali.
+ELEVENLABS_MODEL = _get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
+ELEVENLABS_VOICE_BN = _get("ELEVENLABS_VOICE_BN", "GuSivqtqi1qfWxEuGhqa")
+ELEVENLABS_VOICE_HI = _get("ELEVENLABS_VOICE_HI", "zT03pEAEi0VHKciJODfn")
+
+
 # --- Vision fallback (Gemma multimodal via Google AI Studio free tier) ---
 GEMMA_API_KEY = _get("GEMMA_API_KEY", "")
 # Verified served on the generateContent endpoint (see AI Studio docs).

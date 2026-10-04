@@ -317,7 +317,7 @@ function initTabs() {
 /* ---------- scan flow ---------- */
 /* Shrink big phone photos in the browser: faster upload + much faster OCR
    on tiny servers. Falls back to the original file on any error. */
-function shrinkImage(file, maxSide = 1280) {
+function shrinkImage(file, maxSide = 1600) {
   return new Promise((resolve) => {
     try {
       if (!file || !file.type.startsWith("image/")) return resolve(file);
@@ -335,7 +335,7 @@ function shrinkImage(file, maxSide = 1280) {
           c.height = Math.max(1, Math.round(img.height * scale));
           c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
           URL.revokeObjectURL(url);
-          c.toBlob((b) => resolve(b || file), "image/jpeg", 0.82);
+          c.toBlob((b) => resolve(b || file), "image/jpeg", 0.9);
         } catch { URL.revokeObjectURL(url); resolve(file); }
       };
       img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };

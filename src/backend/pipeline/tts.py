@@ -8,10 +8,13 @@ is always sound, even on the smallest free-tier box.
 """
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import subprocess
 import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from .. import config
@@ -45,9 +48,48 @@ def for_speech(text: str, lang: str = "hi") -> str:
     return re.sub(r"\s+", " ", s).strip()[:1200]
 
 
+def _elevenlabs(text: str, lang: str) -> bytes | None:
+    """Better server voice for bn/hi via ElevenLabs, or None to fall back.
+
+    Requests OGG directly (output_format) so it drops straight into the
+    audio endpoint unchanged. Any problem (no key, quota, network) returns
+    None and the on-box Piper / browser voice takes over.
+    """
+    key = config.ELEVENLABS_API_KEY
+    short = (lang or "hi")[:2]
+    voice = {"bn": config.ELEVENLABS_VOICE_BN,
+             "hi": config.ELEVENLABS_VOICE_HI}.get(short)
+    if not key or not voice or not text:
+        return None
+    try:
+        url = ("https://api.elevenlabs.io/v1/text-to-speech/"
+               f"{voice}?output_format=ogg_44100_128")
+        payload = json.dumps({
+            "text_input": text,
+            "model_id": config.ELEVENLABS_MODEL,
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+        }).encode()
+        req = urllib.request.Request(
+            url, data=payload,
+            headers={"xi-api-key": key, "Content-Type": "application/json",
+                     "Accept": "application/octet-stream"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = r.read()
+        return data or None
+    except Exception:
+        return None
+
+
 def synthesize(text: str, lang: str = "hi") -> bytes | None:
     """Return OGG bytes or None. Never raises."""
     text = for_speech(text, lang)
+    short = (lang or "hi")[:2]
+    # Indic languages get the nicer ElevenLabs voices first (English keeps the
+    # phone's own voices, as before). Fails over to Piper, then the browser.
+    if short in ("bn", "hi") and config.ELEVENLABS_API_KEY:
+        eleven = _elevenlabs(text, lang)
+        if eleven:
+            return eleven
     voice = voice_for(lang)
     if not text or not voice or shutil.which(config.PIPER_BIN) is None:
         return None

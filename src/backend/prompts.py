@@ -20,6 +20,13 @@ or receipt. Reply with ONLY one JSON object, no other text, exactly:
  "amount": number or null, "currency": "INR", "date": "YYYY-MM-DD or null"}
 
 Rules:
+- LANGUAGE LOCK: the paper may be written in ANY language (very often English). \
+No matter what language the paper is in, you MUST write summary_hi, every \
+key_points_hi item, action_hi and disclaimer_hi ONLY in Hindi. Never answer \
+in English or the paper's own language.
+- READ EVERYTHING first: read the whole paper — every line item, quantity, \
+unit price, amount, subtotal, tax, total, date, due date, name and number — \
+so nothing important is missed. Put the most important facts in key_points_hi.
 - NEVER invent numbers. Every number in your answer MUST appear in the OCR text.
 - If the text is unreadable, set doc_type to "unknown" and summary_hi to \
 "photo saaf nahi hai, kripya thodi roshni mein dobara photo lijiye".
@@ -42,7 +49,14 @@ or receipt. Reply with ONLY one JSON object, no other text, exactly:
  "disclaimer_hi": "for medical types: 'oshudh ba dose bodlanor age daktar/pharmacist-ke jigyasa korun', else ''",
  "amount": number or null, "currency": "INR", "date": "YYYY-MM-DD or null"}
 
-Rules (same as Hindi, in Bangla):
+Rules:
+- LANGUAGE LOCK: the paper may be written in ANY language (very often English). \
+No matter what language the paper is in, you MUST write summary_hi, every \
+key_points_hi item, action_hi and disclaimer_hi ONLY in Bangla (sohoj Bangla). \
+Never answer in English or the paper's own language.
+- READ EVERYTHING first: read the whole paper — every line item, quantity, \
+unit price, amount, subtotal, tax, total, date, due date, name and number — \
+so nothing important is missed. Put the most important facts in key_points_hi.
 - NEVER invent numbers. Every number MUST appear in the OCR text.
 - If unreadable, doc_type "unknown" and summary_hi \
 "chobi sposto noy, doya kore ektu alo te abar chobi tulun".
@@ -65,6 +79,12 @@ or receipt. Reply with ONLY one JSON object, no other text, exactly:
  "amount": number or null, "currency": "INR", "date": "YYYY-MM-DD or null"}
 
 Rules:
+- LANGUAGE LOCK: the paper may be written in ANY language (Hindi, Bangla, etc.). \
+No matter what language the paper is in, you MUST write summary_hi, every \
+key_points_hi item, action_hi and disclaimer_hi ONLY in English.
+- READ EVERYTHING first: read the whole paper — every line item, quantity, \
+unit price, amount, subtotal, tax, total, date, due date, name and number — \
+so nothing important is missed. Put the most important facts in key_points_hi.
 - NEVER invent numbers. Every number MUST appear in the OCR text.
 - If unreadable, doc_type "unknown" and summary_hi \
 "the photo is not clear, please retake it in better light".
@@ -94,11 +114,14 @@ def build_user_prompt(ocr_text: str, history_hint: str = "", lang: str = "hi") -
         prompt += f"\nPichhle kagazon ka sandarbh: {history_hint}\n"
     if lang == "bn":
         prompt += ("\nUporer JSON format-e SUDHU JSON uttor din. "
-                   "summary, key points, action SOB BANGLA-e (sohoj Bangla, apni kore) likhun.")
+                   "Paper English ba onno kono bhasha-e thakle o, apanar sob uttor "
+                   "(summary, key points, action) SUDHU BANGLA-e (sohoj Bangla, apni kore) likhun.")
     elif lang == "en":
-        prompt += "\nReply with ONLY JSON in the format above, all text in simple ENGLISH."
+        prompt += ("\nReply with ONLY JSON in the format above. Even if the paper is in "
+                   "Hindi, Bangla or another language, write the ENTIRE reply in simple ENGLISH.")
     else:
-        prompt += "\nUpar diye JSON format mein ONLY JSON jawab dijiye."
+        prompt += ("\nUpar diye JSON format mein ONLY JSON jawab dijiye. "
+                   "Kagaz English ya kisi aur bhasha mein ho, phir bhi poora jawab ONLY Hindi mein.")
     return prompt
 
 

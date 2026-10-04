@@ -21,8 +21,12 @@ services:
         value: 5
       - key: WEB_CONCURRENCY
         value: 1
-      # Optional (all free, no card needed):
-      # - key: GROQ_API_KEY
-      #   sync: false
-      # - key: FAMILY_PIN
-      #   sync: false
+       # Optional (all free, no card needed):
+       # - key: GROQ_API_KEY
+       #   sync: false
+       # - key: FAMILY_PIN
+       #   sync: false
+       # - key: GEMMA_API_KEY            # enables the vision fallback (Google AI Studio)
+       #   sync: false
+       # - key: ELEVENLABS_API_KEY       # better Bengali/Hindi server voices
+       #   sync: false
