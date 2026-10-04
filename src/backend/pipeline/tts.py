@@ -65,6 +65,8 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
     short = (lang or "hi")[:2]
     voice = {"bn": config.ELEVENLABS_VOICE_BN,
              "hi": config.ELEVENLABS_VOICE_HI}.get(short)
+    print(f"[tts] _elevenlabs called: lang={short}, key={'set' if key else 'MISSING'}, "
+          f"voice={voice}, text={text[:50]!r}, sdk={'available' if ElevenLabs else 'MISSING'}")
     if not key or not voice or not text or ElevenLabs is None:
         return None
     try:
@@ -76,8 +78,10 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
             output_format="mp3_44100_128",
         )
         data = bytes(audio) if audio else None
+        print(f"[tts] elevenlabs success: {len(data) if data else 0} bytes")
         return data
-    except Exception:
+    except Exception as e:
+        print(f"[tts] elevenlabs failed: {type(e).__name__}: {e}")
         return None
 
 
