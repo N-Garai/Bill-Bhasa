@@ -77,7 +77,12 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
             model_id=config.ELEVENLABS_MODEL,
             output_format="mp3_44100_128",
         )
-        data = bytes(audio) if audio is not None else None
+        if isinstance(audio, bytes):
+            data = audio
+        elif audio is None:
+            data = None
+        else:
+            data = bytes(audio)
         if not data:
             print("[tts] elevenlabs returned empty audio")
             return None
