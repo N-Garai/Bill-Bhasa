@@ -50,7 +50,7 @@ def test_elevenlabs_returns_ogg_when_key_set(monkeypatch):
     out = tts._elevenlabs("Nomoskar", "bn")
     assert out == b"OGGDATA"
     assert calls and "GuSivqtqi1qfWxEuGhqa" in calls[0]  # the bn voice id
-    assert "ogg_44100_128" in calls[0]
+    assert "mp3_44100_128" in calls[0]
 
 
 def test_elevenlabs_uses_hindi_voice_for_hi(monkeypatch):

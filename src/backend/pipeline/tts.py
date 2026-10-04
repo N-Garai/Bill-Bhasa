@@ -51,7 +51,7 @@ def for_speech(text: str, lang: str = "hi") -> str:
 def _elevenlabs(text: str, lang: str) -> bytes | None:
     """Better server voice for bn/hi via ElevenLabs, or None to fall back.
 
-    Requests OGG directly (output_format) so it drops straight into the
+    Requests MP3 directly (output_format) so it drops straight into the
     audio endpoint unchanged. Any problem (no key, quota, network) returns
     None and the on-box Piper / browser voice takes over.
     """
@@ -63,7 +63,7 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
         return None
     try:
         url = ("https://api.elevenlabs.io/v1/text-to-speech/"
-               f"{voice}?output_format=ogg_44100_128")
+               f"{voice}?output_format=mp3_44100_128")
         payload = json.dumps({
             "text": text,
             "model_id": config.ELEVENLABS_MODEL,
@@ -71,7 +71,7 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
         req = urllib.request.Request(
             url, data=payload,
             headers={"xi-api-key": key, "Content-Type": "application/json",
-                     "Accept": "application/octet-stream"})
+                     "Accept": "audio/mpeg"})
         with urllib.request.urlopen(req, timeout=60) as r:
             data = r.read()
         return data or None
