@@ -489,20 +489,33 @@ async function showResult(id) {
     let serverOk = false;
     if (r.has_audio) {
       try {
-        audio.src = api.audioUrl(id);
+        const blob = await req(`/api/scan/${id}/audio?ts=${Date.now()}`);
+        const url = URL.createObjectURL(blob);
+        audio.src = url;
         try { audio.playbackRate = slowMode ? 0.75 : 1; } catch { /* noop */ }
         await audio.play();
         serverOk = true;
         btn.textContent = t().pause;
+        audio.onended = () => {
+          btn.textContent = t().replay;
+          URL.revokeObjectURL(url);
+        };
       } catch { serverOk = false; }
     }
     btn.onclick = async () => {
       if (!audio.paused) { audio.pause(); stopBrowser(); btn.textContent = t().play; return; }
       if (serverOk || r.has_audio) {
         try {
-          audio.src = api.audioUrl(id);
+          const blob = await req(`/api/scan/${id}/audio?ts=${Date.now()}`);
+          const url = URL.createObjectURL(blob);
+          audio.src = url;
           try { audio.playbackRate = slowMode ? 0.75 : 1; } catch { /* noop */ }
-          await audio.play(); btn.textContent = t().pause; return;
+          await audio.play(); btn.textContent = t().pause;
+          audio.onended = () => {
+            btn.textContent = t().replay;
+            URL.revokeObjectURL(url);
+          };
+          return;
         }
         catch { /* fall through to browser voice */ }
       }
