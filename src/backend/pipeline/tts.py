@@ -65,9 +65,8 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
         url = ("https://api.elevenlabs.io/v1/text-to-speech/"
                f"{voice}?output_format=ogg_44100_128")
         payload = json.dumps({
-            "text_input": text,
+            "text": text,
             "model_id": config.ELEVENLABS_MODEL,
-            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
         }).encode()
         req = urllib.request.Request(
             url, data=payload,
