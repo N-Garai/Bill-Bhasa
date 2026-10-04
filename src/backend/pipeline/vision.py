@@ -36,6 +36,63 @@ def available() -> bool:
     return bool(config.GEMMA_API_KEY)
 
 
+# Asked again with the strictest framing if the first answer has no JSON.
+STRICT_TAIL = ("\n\nOne more time: reply with ONLY the raw JSON object. "
+               "No FIGURES line, no prose, no code fences.")
+
+
+def _figures_line(text: str) -> str:
+    for line in text.splitlines():
+        if line.strip().upper().startswith("FIGURES:"):
+            return line.split(":", 1)[1].strip()[:500]
+    return ""
+
+
+def _request_text(model: str, instruction: str, b64: str) -> tuple[str | None, str | None]:
+    """One generateContent call. Returns (text, halt):
+
+    text   — all text parts joined (models split replies across parts), or None
+    halt   — None on success, 'stop' (don't retry) or 'next' (try next model id)
+    """
+    global last_error
+    payload = json.dumps({
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 2048},
+        "contents": [{
+            "parts": [
+                {"text": instruction},
+                {"inline_data": {"mime_type": "image/jpeg", "data": b64}},
+            ],
+        }],
+    }).encode()
+    url = GEN_URL.format(model=model, key=config.GEMMA_API_KEY)
+    req = urllib.request.Request(url, data=payload,
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as r:
+            body = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        # 400 = bad key, 404 = unknown model id, 429 = free-tier limit
+        last_error = f"http-{e.code}:{model}"
+        return None, ("next" if e.code == 404 else "stop")
+    except TimeoutError:
+        last_error = "timeout"
+        return None, "stop"
+    except Exception:
+        last_error = "request-failed"
+        return None, "stop"
+    try:
+        parts = body["candidates"][0]["content"]["parts"]
+    except Exception:
+        last_error = f"blocked-or-empty:{model}"
+        return None, "next"
+    text = "".join(str(p.get("text", "")) for p in parts
+                   if isinstance(p, dict) and p.get("text"))
+    if not text.strip():
+        last_error = f"empty-response:{model}"
+        return None, "next"
+    return text, None
+
+
 def explain_image(jpeg_bytes: bytes, lang: str = "hi") -> tuple[dict, str] | None:
     """Return (explanation-json, figures-transcript) or None. Never raises."""
     global last_error
@@ -56,50 +113,23 @@ def explain_image(jpeg_bytes: bytes, lang: str = "hi") -> tuple[dict, str] | Non
               "FIGURES: <comma-separated numbers and dates you actually see>. "
               "Then the JSON object, nothing else."
         )
-        payload = json.dumps({
-            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 1024},
-            "contents": [{
-                "parts": [
-                    {"text": instruction},
-                    {"inline_data": {"mime_type": "image/jpeg", "data": b64}},
-                ],
-            }],
-        }).encode()
         models = [config.GEMMA_VISION_MODEL] + [
             m for m in VERIFIED_MODELS if m != config.GEMMA_VISION_MODEL]
         for model in models:
-            url = GEN_URL.format(model=model, key=config.GEMMA_API_KEY)
-            req = urllib.request.Request(url, data=payload,
-                                         headers={"Content-Type": "application/json"})
-            try:
-                with urllib.request.urlopen(req, timeout=60) as r:
-                    body = json.loads(r.read().decode())
-                break
-            except urllib.error.HTTPError as e:
-                last_error = f"http-{e.code}:{model}"
-                if e.code != 404:
-                    return None  # key/quota problems won't heal with another id
-                continue  # unknown model id — try the next verified one
-        else:
-            return None
-        text = body["candidates"][0]["content"]["parts"][0]["text"]
-        transcript = ""
-        for line in text.splitlines():
-            if line.strip().upper().startswith("FIGURES:"):
-                transcript = line.split(":", 1)[1].strip()[:500]
-                break
-        parsed = _extract_json(text)
-        if not isinstance(parsed, dict):
+            transcript = ""
+            for attempt in (instruction, instruction + STRICT_TAIL):
+                text, halt = _request_text(model, attempt, b64)
+                if halt == "stop":
+                    return None
+                if halt == "next":
+                    break  # answer was unusable/blocked — next attempt or model
+                parsed = _extract_json(text)
+                if isinstance(parsed, dict):
+                    transcript = _figures_line(text)
+                    guarded = _guard_numbers(parsed, transcript or json.dumps(parsed))
+                    return guarded, transcript
+            # It answered, just not in JSON — try the next verified model id.
             last_error = f"no-json:{model}"
-            return None
-        guarded = _guard_numbers(parsed, transcript or json.dumps(parsed))
-        return guarded, transcript
-    except urllib.error.HTTPError as e:
-        # 400 = bad key/model id, 404 = unknown model, 429 = free-tier limit
-        last_error = f"http-{e.code}"
-        return None
-    except TimeoutError:
-        last_error = "timeout"
         return None
     except Exception:
         last_error = "request-failed"

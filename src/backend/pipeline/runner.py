@@ -108,7 +108,8 @@ async def run_scan(doc_id: str, raw_image: bytes, lang: str, session_factory,
                   amount=_as_float(explanation.get("amount")),
                   currency=str(explanation.get("currency", "INR") or "INR"),
                   language=lang or config.DEFAULT_LANG,
-                  audio_ogg=audio, status="done", stage_timings=timings)
+                  audio_ogg=audio, status="done", stage_timings=timings,
+                  ocr_text=ocr_text, ocr_confidence=conf)
         except Exception as exc:  # honest failure, friendly message downstream
             timings["failed_at"] = phase
             _save(doc_id, session_factory, status="error",

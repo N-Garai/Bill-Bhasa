@@ -410,9 +410,57 @@ def _extract_json(content: str) -> dict | None:
             continue
     try:
         obj = json.loads(text)
-        return obj if isinstance(obj, dict) else None
+        if isinstance(obj, dict):
+            return obj
     except Exception:
+        pass
+    return _salvage_truncated(text)
+
+
+def _salvage_truncated(text: str) -> dict | None:
+    """Last chance: JSON cut off mid-object (max-output token limit)."""
+    start = text.find("{")
+    if start < 0:
         return None
+    frag = text[start:]
+    for cand in (frag, _close_open(frag)):
+        try:
+            obj = json.loads(cand)
+            if isinstance(obj, dict):
+                return obj
+        except Exception:
+            continue
+    return None
+
+
+def _close_open(s: str) -> str:
+    """Close an unterminated JSON fragment: dangling string, then open braces."""
+    out: list[str] = []
+    stack: list[str] = []
+    in_str = False
+    esc = False
+    for ch in s:
+        if in_str:
+            out.append(ch)
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append(ch)
+        elif ch in "}]":
+            if stack:
+                stack.pop()
+        out.append(ch)
+    if in_str:
+        out.append('"')
+    body = re.sub(r",\s*$", "", "".join(out))
+    return body + "".join("}" if c == "{" else "]" for c in reversed(stack))
 
 
 def _guard_numbers(parsed: dict, ocr_text: str) -> dict:

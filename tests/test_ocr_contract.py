@@ -55,6 +55,44 @@ def test_run_ocr_prefers_longer_gray_read(monkeypatch):
     assert text == "a longer gray read" and conf == 80.0
 
 
+def test_run_ocr_psm4_sparse_fallback(monkeypatch):
+    from PIL import Image
+
+    bin_img = Image.new("L", (120, 60), 255)
+    gray_img = Image.new("L", (120, 60), 200)
+    calls = []
+
+    def fake_tess(img, tess_lang, psm="6"):
+        calls.append((img, psm))
+        if psm == "4" and img is gray_img:
+            return "TOTAL 540", 70.0, False
+        return "", 0.0, False
+
+    monkeypatch.setattr(ocr, "tesseract_available", lambda: True)
+    monkeypatch.setattr(ocr, "_tess", fake_tess)
+    text, conf = ocr.run_ocr(bin_img, gray_img, "en")
+    assert (text, conf) == ("TOTAL 540", 70.0)
+    # psm 4 ran on gray before binarized; the binarized pass was skipped
+    assert calls[-1] == (gray_img, "4") and len([c for c in calls if c[1] == "4"]) == 1
+
+
+def test_run_ocr_psm4_runs_on_binarized_when_gray_empty(monkeypatch):
+    from PIL import Image
+
+    bin_img = Image.new("L", (120, 60), 255)
+    gray_img = Image.new("L", (120, 60), 200)
+
+    def fake_tess(img, tess_lang, psm="6"):
+        if psm == "4" and img is bin_img:
+            return "TOTAL 540", 70.0, False
+        return "", 0.0, False
+
+    monkeypatch.setattr(ocr, "tesseract_available", lambda: True)
+    monkeypatch.setattr(ocr, "_tess", fake_tess)
+    text, conf = ocr.run_ocr(bin_img, gray_img, "en")
+    assert (text, conf) == ("TOTAL 540", 70.0)
+
+
 def test_run_ocr_without_tesseract_is_empty(monkeypatch):
     # Force the "no binary" path even on machines that have Tesseract.
     monkeypatch.setattr(ocr, "tesseract_available", lambda: False)

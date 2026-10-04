@@ -48,12 +48,16 @@ def run_ocr(prepared: Image.Image, retry_gray: Image.Image | None = None,
             first = second
         if second[2]:
             return first[0], first[1]
-    if retry_gray is not None and len(first[0].strip()) < 10:
+    if len(first[0].strip()) < 10:
         # Last resort: fully automatic segmentation for sparse layouts
-        # (big white areas, scattered tables) where psm 6 finds nothing.
-        third = _tess(retry_gray, tess_lang, psm="4")
-        if len(third[0].strip()) > len(first[0].strip()):
-            first = third
+        # (big white areas, scattered tables) where psm 6 finds nothing —
+        # on the softer gray image first, then the binarized one.
+        variants = [retry_gray, prepared] if retry_gray is not None else [prepared]
+        for variant in variants:
+            fourth = _tess(variant, tess_lang, psm="4")
+            if len(fourth[0].strip()) > len(first[0].strip()):
+                first = fourth
+                break
     return first[0], first[1]
 
 
