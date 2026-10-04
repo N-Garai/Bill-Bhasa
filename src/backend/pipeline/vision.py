@@ -34,6 +34,9 @@ VERIFIED_MODELS = ("gemma-4-26b-a4b-it", "gemma-4-31b-it")
 
 # Schema-locked JSON contract for Gemma 4. responseSchema + responseMimeType
 # force the model to return parseable JSON with the exact fields we need.
+# NOTE: the Gemini structured-output API rejects "type" as an array
+# (e.g. ["string","null"]) — nullable/optional fields are instead kept
+# out of "required" and given a single primitive type.
 _VISION_SCHEMA = {
     "type": "object",
     "properties": {
@@ -42,15 +45,15 @@ _VISION_SCHEMA = {
             "medical_prescription", "medicine_strip", "receipt", "unknown"]},
         "summary_hi": {"type": "string"},
         "key_points_hi": {"type": "array", "items": {"type": "string"}},
-        "unusual_hi": {"type": ["string", "null"]},
+        "unusual_hi": {"type": "string"},
         "action_hi": {"type": "string"},
-        "disclaimer_hi": {"type": ["string", "null"]},
-        "amount": {"type": ["number", "null"]},
+        "disclaimer_hi": {"type": "string"},
+        "amount": {"type": "number"},
         "currency": {"type": "string"},
-        "date": {"type": ["string", "null"]},
+        "date": {"type": "string"},
         "figures": {"type": "string"},
-        "subtotal": {"type": ["number", "null"]},
-        "gst_amount": {"type": ["number", "null"]},
+        "subtotal": {"type": "number"},
+        "gst_amount": {"type": "number"},
     },
     "required": ["doc_type", "summary_hi", "key_points_hi", "action_hi",
                  "currency", "figures"],
@@ -120,8 +123,13 @@ def _request_text(model: str, instruction: str, b64: str) -> tuple[str | None, s
         with urllib.request.urlopen(req, timeout=90) as r:
             body = json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
-        # 400 = bad key, 404 = unknown model id, 429 = free-tier limit
-        last_error = f"http-{e.code}:{model}"
+        # 400 = bad key or malformed payload, 404 = unknown model id, 429 = free-tier limit
+        body = ""
+        try:
+            body = e.read().decode("utf-8", "replace")[:300]
+        except Exception:
+            pass
+        last_error = f"http-{e.code}:{model}:{body}"
         return None, ("next" if e.code == 404 else "stop")
     except TimeoutError:
         last_error = "timeout"
