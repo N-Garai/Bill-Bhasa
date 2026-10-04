@@ -132,9 +132,10 @@ def test_vision_payload_includes_schema(monkeypatch):
     result = vision.explain_image(b"\xff\xd8fakejpeg", "en")
     print("RESULT:", result, "LAST_ERROR:", repr(vision.last_error), "CAPTURED:", list(captured.keys()))
     assert "payload" in captured, f"fake_urlopen was not called; last_error={vision.last_error!r}"
-    assert captured["payload"]["responseMimeType"] == "application/json"
-    assert "responseSchema" in captured["payload"]
-    req = captured["payload"]["responseSchema"]["required"]
+    gc = captured["payload"]["generationConfig"]
+    assert gc["responseMimeType"] == "application/json"
+    assert "responseSchema" in gc
+    req = gc["responseSchema"]["required"]
     assert "doc_type" in req
     assert "figures" in req
 

@@ -105,15 +105,18 @@ def _request_text(model: str, instruction: str, b64: str) -> tuple[str | None, s
     """
     global last_error
     payload_str = json.dumps({
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 2048},
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 2048,
+            "responseMimeType": "application/json",
+            "responseSchema": _VISION_SCHEMA,
+        },
         "contents": [{
             "parts": [
                 {"text": instruction},
                 {"inline_data": {"mime_type": "image/jpeg", "data": b64}},
             ],
         }],
-        "responseMimeType": "application/json",
-        "responseSchema": _VISION_SCHEMA,
     })
     payload = payload_str.encode()
     url = GEN_URL.format(model=model, key=config.GEMMA_API_KEY)
