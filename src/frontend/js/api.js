@@ -62,7 +62,7 @@ export const api = {
   scanText: (text, lang = "hi") => postJSON("/api/scan-text", { text, lang }),
   status: (id) => req(`/api/scan/${id}/status`),
   result: (id) => req(`/api/scan/${id}`),
-  audioUrl: (id) => `/api/scan/${id}/audio`,
+  audioUrl: (id) => `/api/scan/${id}/audio?ts=${Date.now()}`,
   remove: (id) => req(`/api/scan/${id}`, { method: "DELETE" }),
   history: () => req("/api/history?limit=30"),
   trends: () => req("/api/trends"),

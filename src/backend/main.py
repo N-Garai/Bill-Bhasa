@@ -284,7 +284,7 @@ def scan_audio(doc_id: str, db=Depends(_db), code: str = Depends(_family_code)):
     data = bytes(doc.audio_ogg)
     print(f"[audio] serving {len(data)} bytes for {doc_id}")
     return Response(content=data, media_type="audio/mpeg",
-                    headers={"Cache-Control": "public, max-age=86400"})
+                    headers={"Cache-Control": "no-store"})
 
 
 @app.delete("/api/scan/{doc_id}")
