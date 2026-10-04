@@ -77,19 +77,28 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
             model_id=config.ELEVENLABS_MODEL,
             output_format="mp3_44100_128",
         )
+        print(f"[tts] elevenlabs raw response type: {type(audio).__name__}, "
+              f"value preview: {repr(audio)[:120]}")
         if isinstance(audio, bytes):
             data = audio
         elif audio is None:
-            data = None
+            print("[tts] elevenlabs returned None")
+            return None
         else:
-            data = bytes(audio)
+            try:
+                data = bytes(audio)
+            except Exception as conv_err:
+                print(f"[tts] bytes() conversion failed: {type(conv_err).__name__}: {conv_err}")
+                return None
         if not data:
             print("[tts] elevenlabs returned empty audio")
             return None
-        print(f"[tts] elevenlabs success: {len(data)} bytes, type={type(data).__name__}")
+        print(f"[tts] elevenlabs success: {len(data)} bytes")
         return data
     except Exception as e:
+        import traceback
         print(f"[tts] elevenlabs failed: {type(e).__name__}: {e}")
+        traceback.print_exc()
         return None
 
 
