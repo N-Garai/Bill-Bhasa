@@ -37,24 +37,24 @@ def run_ocr(prepared: Image.Image, retry_gray: Image.Image | None = None,
         tess_lang = "eng"  # one language = faster + sharper on a 0.1-CPU box
     elif short == "bn" and "ben" not in tess_lang:
         tess_lang = tess_lang + "+ben"  # needs ben.traineddata (see Dockerfile)
-    first, slow = _tess(prepared, tess_lang)
-    if slow:
+    first = _tess(prepared, tess_lang)
+    if first[2]:
         # Box too slow for Tesseract — further passes would time out too.
         # Return what we have; the vision fallback takes it from here.
-        return first
+        return first[0], first[1]
     if retry_gray is not None and len(first[0].strip()) < 25:
-        second, slow = _tess(retry_gray, tess_lang)
+        second = _tess(retry_gray, tess_lang)
         if len(second[0].strip()) > len(first[0].strip()):
             first = second
-        if slow:
-            return first
+        if second[2]:
+            return first[0], first[1]
     if retry_gray is not None and len(first[0].strip()) < 10:
         # Last resort: fully automatic segmentation for sparse layouts
         # (big white areas, scattered tables) where psm 6 finds nothing.
-        third, _ = _tess(retry_gray, tess_lang, psm="4")
+        third = _tess(retry_gray, tess_lang, psm="4")
         if len(third[0].strip()) > len(first[0].strip()):
             first = third
-    return first
+    return first[0], first[1]
 
 
 def _tess(img: Image.Image, tess_lang: str, psm: str = "6") -> tuple[str, float, bool]:
@@ -101,8 +101,17 @@ def _mean_conf(tsv: Path) -> float:
             return 0.0
         header = lines[0].split("\t")
         ci = header.index("conf")
-        vals = [float(p.split("\t")[ci]) for p in lines[1:] if p.split("\t")[ci].strip("- ").lstrip("-").isdigit()]
-        vals = [v for v in vals if v >= 0]
+        vals = []
+        for p in lines[1:]:
+            parts = p.split("\t")
+            if len(parts) <= ci:
+                continue
+            try:
+                v = float(parts[ci].strip())
+            except ValueError:
+                continue
+            if v >= 0:
+                vals.append(v)
         return round(sum(vals) / len(vals), 1) if vals else 0.0
     except Exception:
         return 0.0
