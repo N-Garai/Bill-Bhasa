@@ -12,6 +12,8 @@ psycopg2-binary==2.9.10
 pytesseract==0.3.13
 # Optional HEIC opener for iPhone photos (fail-soft if uninstallable).
 pillow-heif==0.21.0
+# ElevenLabs TTS for better Bengali/Hindi voices (optional).
+elevenlabs==2.70.0
 # Test runner.
 pytest==8.3.4
 httpx==0.28.1

@@ -21,6 +21,11 @@ from .. import config
 
 MONEY_WORD = {"hi": " रुपये ", "bn": " টাকা ", "en": " rupees "}
 
+try:
+    from elevenlabs.client import ElevenLabs  # type: ignore
+except Exception:
+    ElevenLabs = None  # type: ignore
+
 
 def voice_for(lang: str = "hi") -> str | None:
     """Baked voice file for this language, or None (use browser voice)."""
@@ -51,30 +56,27 @@ def for_speech(text: str, lang: str = "hi") -> str:
 def _elevenlabs(text: str, lang: str) -> bytes | None:
     """Better server voice for bn/hi via ElevenLabs, or None to fall back.
 
-    Requests MP3 directly (output_format) so it drops straight into the
-    audio endpoint unchanged. Any problem (no key, quota, network) returns
-    None and the on-box Piper / browser voice takes over.
+    Uses the official ElevenLabs Python SDK exactly as documented at
+    https://elevenlabs.io/docs/eleven-api/quickstart. Any problem
+    (no key, quota, network, missing package) returns None and the
+    on-box Piper / browser voice takes over.
     """
     key = config.ELEVENLABS_API_KEY
     short = (lang or "hi")[:2]
     voice = {"bn": config.ELEVENLABS_VOICE_BN,
              "hi": config.ELEVENLABS_VOICE_HI}.get(short)
-    if not key or not voice or not text:
+    if not key or not voice or not text or ElevenLabs is None:
         return None
     try:
-        url = ("https://api.elevenlabs.io/v1/text-to-speech/"
-               f"{voice}?output_format=mp3_44100_128")
-        payload = json.dumps({
-            "text": text,
-            "model_id": config.ELEVENLABS_MODEL,
-        }).encode()
-        req = urllib.request.Request(
-            url, data=payload,
-            headers={"xi-api-key": key, "Content-Type": "application/json",
-                     "Accept": "audio/mpeg"})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            data = r.read()
-        return data or None
+        client = ElevenLabs(api_key=key)
+        audio = client.text_to_speech.convert(
+            text=text,
+            voice_id=voice,
+            model_id=config.ELEVENLABS_MODEL,
+            output_format="mp3_44100_128",
+        )
+        data = bytes(audio) if audio else None
+        return data
     except Exception:
         return None
 
