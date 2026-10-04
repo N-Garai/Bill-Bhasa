@@ -65,42 +65,26 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
     short = (lang or "hi")[:2]
     voice = {"bn": config.ELEVENLABS_VOICE_BN,
              "hi": config.ELEVENLABS_VOICE_HI}.get(short)
-    print(f"[tts] _elevenlabs called: lang={short}, key={'set' if key else 'MISSING'}, "
-          f"voice={voice}, text={text[:50]!r}, sdk={'available' if ElevenLabs else 'MISSING'}")
     if not key or not voice or not text or ElevenLabs is None:
         return None
     try:
-        print("[tts] creating ElevenLabs client...")
         client = ElevenLabs(api_key=key)
-        print("[tts] calling convert...")
         audio = client.text_to_speech.convert(
             text=text,
             voice_id=voice,
             model_id=config.ELEVENLABS_MODEL,
             output_format="mp3_44100_128",
         )
-        print(f"[tts] convert returned type={type(audio).__name__}")
         if isinstance(audio, bytes):
             data = audio
         elif audio is None:
-            print("[tts] elevenlabs returned None")
             return None
         else:
-            print(f"[tts] converting {type(audio).__name__} to bytes...")
-            try:
-                data = bytes(audio)
-            except Exception as conv_err:
-                print(f"[tts] bytes() conversion failed: {type(conv_err).__name__}: {conv_err}")
-                return None
+            data = b"".join(audio)
         if not data:
-            print("[tts] elevenlabs returned empty audio")
             return None
-        print(f"[tts] elevenlabs success: {len(data)} bytes")
         return data
-    except Exception as e:
-        import traceback
-        print(f"[tts] elevenlabs failed: {type(e).__name__}: {e}")
-        traceback.print_exc()
+    except Exception:
         return None
 
 
