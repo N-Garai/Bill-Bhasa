@@ -84,7 +84,8 @@ def _elevenlabs(text: str, lang: str) -> bytes | None:
         if not data:
             return None
         return data
-    except Exception:
+    except Exception as e:
+        print(f"[tts] elevenlabs failed: {type(e).__name__}: {e}")
         return None
 
 
